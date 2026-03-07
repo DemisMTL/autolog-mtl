@@ -2,18 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, ensureTable } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
-    try {
-        await ensureTable();
-        const sql = getDb();
+  try {
+    await ensureTable();
+    const sql = getDb();
 
-        const { searchParams } = new URL(req.url);
-        const dateFilter = searchParams.get('date'); // formato YYYY-MM-DD
+    const { searchParams } = new URL(req.url);
+    const dateFilter = searchParams.get('date'); // formato YYYY-MM-DD
 
-        let rows;
-        if (dateFilter) {
-            // Filtra per giorno specifico (in UTC)
-            rows = await sql`
+    let rows;
+    if (dateFilter) {
+      rows = await sql`
         SELECT 
+          id,
           timestamp::text,
           targa,
           tipo_veicolo,
@@ -26,9 +26,10 @@ export async function GET(req: NextRequest) {
         WHERE DATE(timestamp AT TIME ZONE 'Europe/Rome') = ${dateFilter}
         ORDER BY timestamp ASC
       `;
-        } else {
-            rows = await sql`
+    } else {
+      rows = await sql`
         SELECT 
+          id,
           timestamp::text,
           targa,
           tipo_veicolo,
@@ -41,22 +42,23 @@ export async function GET(req: NextRequest) {
         ORDER BY timestamp DESC
         LIMIT 500
       `;
-        }
-
-        const records = rows.map((r: any) => ({
-            timestamp: r.timestamp,
-            targa: r.targa,
-            tipo_veicolo: r.tipo_veicolo,
-            numero_veicolo: r.numero_veicolo,
-            lavorazione_eseguita: r.lavorazione_eseguita,
-            note: r.note || '',
-            lat: r.lat ? parseFloat(r.lat) : null,
-            lng: r.lng ? parseFloat(r.lng) : null,
-        }));
-
-        return NextResponse.json({ records });
-    } catch (error: any) {
-        console.error('Errore lettura record:', error.message);
-        return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    const records = rows.map((r: any) => ({
+      id: r.id,
+      timestamp: r.timestamp,
+      targa: r.targa,
+      tipo_veicolo: r.tipo_veicolo,
+      numero_veicolo: r.numero_veicolo,
+      lavorazione_eseguita: r.lavorazione_eseguita,
+      note: r.note || '',
+      lat: r.lat ? parseFloat(r.lat) : null,
+      lng: r.lng ? parseFloat(r.lng) : null,
+    }));
+
+    return NextResponse.json({ records });
+  } catch (error: any) {
+    console.error('Errore lettura record:', error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }

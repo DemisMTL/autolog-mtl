@@ -132,7 +132,12 @@ export default function NewRecord() {
         }
     };
 
+    const [isSaving, setIsSaving] = useState(false);
+
     const handleFinalSave = async () => {
+        if (isSaving) return; // previene doppio click
+        setIsSaving(true);
+
         const newRecord = {
             id: Date.now().toString(),
             targa: reviewData?.targa || null,
@@ -144,13 +149,13 @@ export default function NewRecord() {
             timestamp: new Date().toISOString(),
         };
 
-        // 1. Salvataggio locale (sempre, anche offline)
+        // 1. Salvataggio locale
         const existing = localStorage.getItem('autolog_records');
         const records = existing ? JSON.parse(existing) : [];
         records.push(newRecord);
         localStorage.setItem('autolog_records', JSON.stringify(records));
 
-        // 2. Salvataggio cloud su Google Sheets (in background, non blocca)
+        // 2. Salvataggio cloud Neon (in background)
         try {
             await fetch('/api/save-record', {
                 method: 'POST',
@@ -158,11 +163,12 @@ export default function NewRecord() {
                 body: JSON.stringify(newRecord),
             });
         } catch (cloudErr) {
-            console.warn('Salvataggio cloud fallito (sarà ritentato al prossimo avvio):', cloudErr);
+            console.warn('Salvataggio cloud fallito:', cloudErr);
         }
 
         router.push('/');
     };
+
 
 
     // ------------------------------------------------------------------------
