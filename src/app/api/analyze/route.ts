@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "missing_key");
-const MODEL = "gemini-1.5-flash"; // Modello stabile con supporto multi-immagine garantito
+const MODEL = "gemini-2.0-flash"; // Disponibile su v1beta con @google/generative-ai 0.24.x
 
 export async function POST(req: NextRequest) {
     try {
