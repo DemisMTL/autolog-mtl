@@ -27,7 +27,7 @@ Analizza ${rawImages.length > 1 ? `queste ${rawImages.length} immagini dello ste
 Estrai le seguenti informazioni e restituiscile ESCLUSIVAMENTE in formato JSON puro (senza markdown, senza backtick).
 
 Regole obbligatorie per ogni campo:
-- "targa": MAIUSCOLO e SENZA SPAZI (es. "AB123CD"). Se non visibile usa null.
+- "targa": MAIUSCOLO e SENZA SPAZI. Sugli scontrini VDO/tachigrafo la targa appare spesso nel formato "I /FE993NH" o "I /AB123CD" (dove "I /" è la sigla del paese Italia) — in quel caso estrai solo la parte alfanumerica senza la sigla paese (es. "FE993NH"). Può anche apparire come "TR / 5 3 4 1 8 8 2 2" (Turchia) o altri formati europei. Cerca la riga subito sotto "N. Telaio" o accanto alla sigla nazione. Se non visibile usa null.
 - "telaio": numero di telaio/VIN. Spesso su targhette VDO, scontrini ("N. Telaio"), etichette adesive. 17 caratteri alfanumerici (es. "WDF9634031B984316"). Senza spazi. Se non visibile usa null.
 - "seriale_centralina": seriale del dispositivo/tachigrafo (es. "FMC640-23Q2-00032", "AUTA-FMC361"). Cerca sigle FMC, VR, Continental, Stoneridge, Siemens VDO. Se non visibile usa null.
 - "marca_veicolo": marca del veicolo (es. "Mercedes Benz", "Volvo", "Scania", "DAF", "MAN", "Iveco"). Se non deducibile usa null.
