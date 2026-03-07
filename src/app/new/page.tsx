@@ -114,7 +114,19 @@ export default function NewRecord() {
     const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files) return;
+
         Array.from(files).forEach(file => {
+            // Estrazione EXIF per coordinate GPS
+            import('exifr').then((exifr) => {
+                exifr.gps(file).then((gpsData: any) => {
+                    if (gpsData && gpsData.latitude && gpsData.longitude) {
+                        console.log("Coordinate EXIF estratte dalla foto:", gpsData);
+                        setLocation({ lat: gpsData.latitude, lng: gpsData.longitude });
+                    }
+                }).catch(err => console.warn("EXIF read error", err));
+            });
+
+            // Lettura file per preview / invio IA
             const reader = new FileReader();
             reader.onload = async (ev) => {
                 const compressed = await compressImage(ev.target?.result as string);
