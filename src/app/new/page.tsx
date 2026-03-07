@@ -9,7 +9,7 @@ export default function NewRecord() {
     const [isRecording, setIsRecording] = useState(false);
     const [noteText, setNoteText] = useState("");
     const [location, setLocation] = useState<{ lat: number, lng: number } | null>(null);
-    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [photos, setPhotos] = useState<string[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [reviewData, setReviewData] = useState<any>(null);
 
@@ -88,21 +88,27 @@ export default function NewRecord() {
         }
     };
 
+    // Normalizza targa: toUpperCase e rimuove spazi
+    const normalizePlate = (p: string) => p.replace(/\s+/g, '').toUpperCase();
+
     const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
+        const files = e.target.files;
+        if (!files) return;
+        Array.from(files).forEach(file => {
             const reader = new FileReader();
             reader.onload = (ev) => {
-                setPhotoPreview(ev.target?.result as string);
+                setPhotos(prev => [...prev, ev.target?.result as string]);
             };
             reader.readAsDataURL(file);
-        }
+        });
+        // Reset input per permettere di selezionare lo stesso file di nuovo
+        e.target.value = '';
     };
 
     const handleAnalyze = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!photoPreview) {
-            alert("Scatta prima una foto del veicolo!");
+        if (photos.length === 0) {
+            alert("Scatta almeno una foto del veicolo!");
             return;
         }
 
@@ -112,21 +118,16 @@ export default function NewRecord() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    imageBase64: photoPreview,
+                    imagesBase64: photos,
                     notes: noteText
                 }),
             });
 
             const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || "Errore API backend");
-            }
-
+            if (!res.ok) throw new Error(data.error || "Errore API backend");
             setReviewData(data.data);
-
         } catch (err: any) {
-            alert("⚠️ Errore IA:\n" + err.message + "\n\nAssicurati che: \n1. Il file .env.local contenga la chiave esatta\n2. Di aver RIAVVIATO il server inserita la chiave.");
+            alert("⚠️ Errore IA:\n" + err.message);
         } finally {
             setIsAnalyzing(false);
         }
@@ -138,9 +139,12 @@ export default function NewRecord() {
         if (isSaving) return; // previene doppio click
         setIsSaving(true);
 
+        // Normalizza targa: maiuscola, senza spazi
+        const targaNorm = reviewData?.targa ? normalizePlate(reviewData.targa) : null;
+
         const newRecord = {
             id: Date.now().toString(),
-            targa: reviewData?.targa || null,
+            targa: targaNorm,
             tipo_veicolo: reviewData?.tipo_veicolo || null,
             numero_veicolo: reviewData?.numero_veicolo || null,
             lavorazione_eseguita: reviewData?.lavorazione_eseguita || null,
@@ -270,17 +274,28 @@ export default function NewRecord() {
                         <span>📷</span> Acquisizione Foto
                     </h2>
 
-                    {/* Anteprima */}
-                    <div style={{ position: 'relative', width: '100%', height: photoPreview ? 'auto' : '160px', background: 'rgba(0,0,0,0.3)', borderRadius: '16px', border: '2px dashed var(--glass-border)', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', marginBottom: '16px' }}>
-                        {photoPreview ? (
-                            <img src={photoPreview} alt="Anteprima" style={{ width: '100%', height: 'auto', display: 'block' }} />
-                        ) : (
-                            <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '8px', opacity: 0.8 }}>📸</span>
-                                <p>Nessuna foto selezionata</p>
-                            </div>
-                        )}
-                    </div>
+                    {/* Griglia thumbnails foto aggiunte */}
+                    {photos.length > 0 && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
+                            {photos.map((src, idx) => (
+                                <div key={idx} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', aspectRatio: '1' }}>
+                                    <img src={src} alt={`Foto ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                    <button
+                                        type="button"
+                                        onClick={() => setPhotos(prev => prev.filter((_, i) => i !== idx))}
+                                        style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%', width: '24px', height: '24px', color: 'white', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    >✕</button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {photos.length === 0 && (
+                        <div style={{ width: '100%', height: '120px', background: 'rgba(0,0,0,0.25)', borderRadius: '16px', border: '2px dashed var(--glass-border)', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '12px', flexDirection: 'column', gap: '8px', color: 'var(--text-secondary)' }}>
+                            <span style={{ fontSize: '2.5rem' }}>📸</span>
+                            <p style={{ fontSize: '0.9rem' }}>Nessuna foto — aggiungi fino a 5</p>
+                        </div>
+                    )}
 
                     {/* Due bottoni: Fotocamera e Libreria */}
                     <div style={{ display: 'flex', gap: '12px' }}>
@@ -290,18 +305,20 @@ export default function NewRecord() {
                                 type="file"
                                 accept="image/*"
                                 capture="environment"
+                                multiple
                                 onChange={handlePhotoCapture}
                                 style={{ display: 'none' }}
+                                disabled={photos.length >= 5}
                             />
                             <span style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                 padding: '14px', borderRadius: '16px',
-                                background: 'linear-gradient(135deg, rgba(14,165,233,0.25), rgba(59,130,246,0.2))',
+                                background: photos.length >= 5 ? 'rgba(255,255,255,0.03)' : 'linear-gradient(135deg, rgba(14,165,233,0.25), rgba(59,130,246,0.2))',
                                 border: '1px solid rgba(56,189,248,0.3)',
-                                color: 'var(--accent)', fontWeight: '600', cursor: 'pointer',
+                                color: photos.length >= 5 ? 'var(--text-secondary)' : 'var(--accent)', fontWeight: '600', cursor: photos.length >= 5 ? 'not-allowed' : 'pointer',
                                 fontSize: '1rem', userSelect: 'none'
                             }}>
-                                📷 Fotocamera
+                                📷 {photos.length >= 5 ? 'Max 5 foto' : `Fotocamera${photos.length > 0 ? ` (${photos.length})` : ''}`}
                             </span>
                         </label>
 
@@ -310,15 +327,17 @@ export default function NewRecord() {
                             <input
                                 type="file"
                                 accept="image/*"
+                                multiple
                                 onChange={handlePhotoCapture}
                                 style={{ display: 'none' }}
+                                disabled={photos.length >= 5}
                             />
                             <span style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                 padding: '14px', borderRadius: '16px',
                                 background: 'rgba(255,255,255,0.06)',
                                 border: '1px solid var(--glass-border)',
-                                color: 'var(--text-secondary)', fontWeight: '600', cursor: 'pointer',
+                                color: photos.length >= 5 ? 'var(--text-secondary)' : 'white', fontWeight: '600', cursor: photos.length >= 5 ? 'not-allowed' : 'pointer',
                                 fontSize: '1rem', userSelect: 'none'
                             }}>
                                 🖼 Libreria

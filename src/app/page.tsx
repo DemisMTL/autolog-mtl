@@ -250,7 +250,8 @@ export default function Home() {
                   <div className="record-icon">{getVehicleEmoji(record.tipo_veicolo)}</div>
                   <div className="record-details" style={{ flex: 1 }}>
                     <h3 style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      {record.targa || record.tipo_veicolo || 'Veicolo'}
+                      {[record.targa, record.numero_veicolo ? `· #${record.numero_veicolo}` : null]
+                        .filter(Boolean).join(' ') || record.tipo_veicolo || 'Veicolo'}
                     </h3>
                     <p>{record.lavorazione_eseguita || record.note || '—'}</p>
                   </div>
