@@ -139,8 +139,9 @@ export default function NewRecord() {
         if (isSaving) return; // previene doppio click
         setIsSaving(true);
 
-        // Normalizza targa: maiuscola, senza spazi
+        // Normalizza targa e telaio: maiuscola, senza spazi
         const targaNorm = reviewData?.targa ? normalizePlate(reviewData.targa) : null;
+        const teialoNorm = reviewData?.telaio ? reviewData.telaio.replace(/\s+/g, '').toUpperCase() : null;
 
         const newRecord = {
             id: Date.now().toString(),
@@ -151,6 +152,9 @@ export default function NewRecord() {
             note: noteText,
             location: location,
             timestamp: new Date().toISOString(),
+            telaio: teialoNorm,
+            seriale_centralina: reviewData?.seriale_centralina || null,
+            marca_veicolo: reviewData?.marca_veicolo || null,
         };
 
         // 1. Salvataggio locale
@@ -196,8 +200,19 @@ export default function NewRecord() {
                         <input
                             type="text"
                             value={reviewData.targa || ""}
-                            onChange={e => setReviewData({ ...reviewData, targa: e.target.value })}
-                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', color: 'white', fontSize: '1.1rem', textTransform: 'uppercase' }}
+                            onChange={e => setReviewData({ ...reviewData, targa: e.target.value.replace(/\s+/g, '').toUpperCase() })}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', color: 'white', fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                        />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--accent)', marginBottom: '8px' }}>Marca Veicolo</label>
+                        <input
+                            type="text"
+                            placeholder="Es. Mercedes Benz, Volvo, Scania…"
+                            value={reviewData.marca_veicolo || ""}
+                            onChange={e => setReviewData({ ...reviewData, marca_veicolo: e.target.value })}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', color: 'white', fontSize: '1.1rem' }}
                         />
                     </div>
 
@@ -215,10 +230,32 @@ export default function NewRecord() {
                         <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--accent)', marginBottom: '8px' }}>Numero Veicolo Aziendale</label>
                         <input
                             type="text"
-                            placeholder="Es. Furgone 3 o Nessuno"
+                            placeholder="Es. 893"
                             value={reviewData.numero_veicolo || ""}
                             onChange={e => setReviewData({ ...reviewData, numero_veicolo: e.target.value })}
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', color: 'white', fontSize: '1.1rem' }}
+                        />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.9rem', color: '#a78bfa', marginBottom: '8px' }}>🔢 N. Telaio</label>
+                        <input
+                            type="text"
+                            placeholder="Es. WDF9634031B984316"
+                            value={reviewData.telaio || ""}
+                            onChange={e => setReviewData({ ...reviewData, telaio: e.target.value.replace(/\s+/g, '').toUpperCase() })}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(167,139,250,0.4)', color: 'white', fontSize: '1rem', letterSpacing: '0.08em', fontFamily: 'monospace' }}
+                        />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.9rem', color: '#a78bfa', marginBottom: '8px' }}>🔌 Seriale Centralina</label>
+                        <input
+                            type="text"
+                            placeholder="Es. FMC640-23Q2-00032"
+                            value={reviewData.seriale_centralina || ""}
+                            onChange={e => setReviewData({ ...reviewData, seriale_centralina: e.target.value })}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(167,139,250,0.4)', color: 'white', fontSize: '1rem', letterSpacing: '0.05em', fontFamily: 'monospace' }}
                         />
                     </div>
 
@@ -240,10 +277,11 @@ export default function NewRecord() {
                         </button>
                         <button
                             onClick={handleFinalSave}
+                            disabled={isSaving}
                             className="btn-primary"
-                            style={{ flex: 2, padding: '14px', borderRadius: '16px' }}
+                            style={{ flex: 2, padding: '14px', borderRadius: '16px', opacity: isSaving ? 0.7 : 1 }}
                         >
-                            Salva Intervento
+                            {isSaving ? '⏳ Salvataggio...' : '✅ Salva Intervento'}
                         </button>
                     </div>
                 </section>

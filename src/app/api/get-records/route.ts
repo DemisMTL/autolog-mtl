@@ -7,37 +7,23 @@ export async function GET(req: NextRequest) {
     const sql = getDb();
 
     const { searchParams } = new URL(req.url);
-    const dateFilter = searchParams.get('date'); // formato YYYY-MM-DD
+    const dateFilter = searchParams.get('date');
 
     let rows;
     if (dateFilter) {
       rows = await sql`
-        SELECT 
-          id,
-          timestamp::text,
-          targa,
-          tipo_veicolo,
-          numero_veicolo,
-          lavorazione_eseguita,
-          note,
-          lat,
-          lng
+        SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
+               lavorazione_eseguita, note, lat, lng,
+               telaio, seriale_centralina, marca_veicolo
         FROM records
         WHERE DATE(timestamp AT TIME ZONE 'Europe/Rome') = ${dateFilter}
         ORDER BY timestamp ASC
       `;
     } else {
       rows = await sql`
-        SELECT 
-          id,
-          timestamp::text,
-          targa,
-          tipo_veicolo,
-          numero_veicolo,
-          lavorazione_eseguita,
-          note,
-          lat,
-          lng
+        SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
+               lavorazione_eseguita, note, lat, lng,
+               telaio, seriale_centralina, marca_veicolo
         FROM records
         ORDER BY timestamp DESC
         LIMIT 500
@@ -54,6 +40,9 @@ export async function GET(req: NextRequest) {
       note: r.note || '',
       lat: r.lat ? parseFloat(r.lat) : null,
       lng: r.lng ? parseFloat(r.lng) : null,
+      telaio: r.telaio,
+      seriale_centralina: r.seriale_centralina,
+      marca_veicolo: r.marca_veicolo,
     }));
 
     return NextResponse.json({ records });

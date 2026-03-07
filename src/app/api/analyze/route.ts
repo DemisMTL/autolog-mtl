@@ -13,7 +13,6 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        // Supporta sia singola immagine (imageBase64) che array (imagesBase64)
         const rawImages: string[] = body.imagesBase64 ?? (body.imageBase64 ? [body.imageBase64] : []);
         const notes: string = body.notes || "";
 
@@ -23,24 +22,31 @@ export async function POST(req: NextRequest) {
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-        const prompt = `Sei un assistente per meccanici. Analizza ${rawImages.length > 1 ? `queste ${rawImages.length} immagini dello stesso veicolo` : "questa immagine del veicolo"} insieme alle seguenti note dettate a voce: "${notes || "Nessuna nota inserita"}".
+        const prompt = `Sei un assistente specializzato per officine meccaniche, in particolare per veicoli pesanti (camion, autocarri, semirimorchi).
+Analizza ${rawImages.length > 1 ? `queste ${rawImages.length} immagini dello stesso veicolo` : "questa immagine del veicolo"} insieme alle seguenti note dettate a voce: "${notes || "Nessuna nota inserita"}".
 
 Estrai le seguenti informazioni e restituiscile ESCLUSIVAMENTE in formato JSON puro (senza markdown, senza backtick).
-Regole obbligatorie:
-- "targa": sempre in MAIUSCOLO e SENZA SPAZI (es. "AB123CD", non "AB 123 CD"). Se non deducibile usa null.
-- "numero_veicolo": identificativo aziendale o numero interno del veicolo se visibile. Se non presente usa null.
-- "tipo_veicolo": es. "Berlina", "SUV", "Furgone", "Moto", "Trattore", ecc.
-- "lavorazione_eseguita": il tipo di intervento, dedotto sia dalle foto che dalle note (scritto in buon italiano tecnico).
 
-Schema JSON richiesto:
+Regole obbligatorie per ogni campo:
+- "targa": MAIUSCOLO e SENZA SPAZI (es. "AB123CD"). Se non visibile usa null.
+- "telaio": numero di telaio/VIN del veicolo. Spesso visibile su targhette VDO, scontrini del tachigrafo (voce "N. Telaio" o "WDF..."), o etichette adesive sul montante porta. Formato tipico: 17 caratteri alfanumerici (es. "WDF9634031B984316"). Senza spazi. Se non visibile usa null.
+- "seriale_centralina": numero seriale della centralina/tachigrafo digitale. Spesso impresso sull'etichetta del dispositivo elettronico (es. "FMC640-23Q2-00032", "AUTA-FMC361"). Cerca sigle come FMC, VR, Continental, Stoneridge, Siemens VDO, ecc. Se non visibile usa null.
+- "marca_veicolo": marca del veicolo (es. "Mercedes Benz", "Volvo", "Scania", "DAF", "MAN", "Iveco", "Renault"). Deducibile dalla targa (WDF=Mercedes), dal corpo del veicolo, o dai documenti. Se non deducibile usa null.
+- "numero_veicolo": numero aziendale interno del veicolo (spesso scritto sul montante o sulla cabina, es. "893"). Se non visibile usa null.
+- "tipo_veicolo": es. "Trattore stradale", "Camion", "Furgone", "Berlina", "SUV", ecc.
+- "lavorazione_eseguita": il tipo di intervento, dedotto sia dalle foto che dalle note (buon italiano tecnico).
+
+Schema JSON da restituire:
 {
   "targa": "stringa senza spazi o null",
+  "telaio": "stringa senza spazi o null",
+  "seriale_centralina": "stringa o null",
+  "marca_veicolo": "stringa o null",
   "numero_veicolo": "stringa o null",
   "tipo_veicolo": "stringa",
   "lavorazione_eseguita": "stringa"
 }`;
 
-        // Costruisce le parti immagine per ogni foto
         const imageParts = rawImages.map((img: string) => ({
             inlineData: {
                 data: img.replace(/^data:image\/\w+;base64,/, ""),
@@ -55,10 +61,9 @@ Schema JSON richiesto:
 
         try {
             const parsedData = JSON.parse(text);
-            // Normalizzazione forzata lato server: targa sempre senza spazi e maiuscola
-            if (parsedData.targa) {
-                parsedData.targa = parsedData.targa.replace(/\s+/g, "").toUpperCase();
-            }
+            // Normalizzazione server-side: targa e telaio senza spazi, maiuscoli
+            if (parsedData.targa) parsedData.targa = parsedData.targa.replace(/\s+/g, "").toUpperCase();
+            if (parsedData.telaio) parsedData.telaio = parsedData.telaio.replace(/\s+/g, "").toUpperCase();
             return NextResponse.json({ success: true, data: parsedData });
         } catch {
             console.error("JSON parsing error. Raw output:", text);
@@ -68,7 +73,7 @@ Schema JSON richiesto:
             );
         }
     } catch (error: any) {
-        console.error("API /analyze endpoint error:", error.message);
+        console.error("API /analyze error:", error.message);
         return NextResponse.json(
             { error: "Errore durante l'analisi AI: " + error.message },
             { status: 500 }

@@ -6,14 +6,19 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const {
             targa, tipo_veicolo, numero_veicolo,
-            lavorazione_eseguita, note, location, timestamp
+            lavorazione_eseguita, note, location, timestamp,
+            telaio, seriale_centralina, marca_veicolo
         } = body;
 
         await ensureTable();
         const sql = getDb();
 
         await sql`
-      INSERT INTO records (timestamp, targa, tipo_veicolo, numero_veicolo, lavorazione_eseguita, note, lat, lng)
+      INSERT INTO records (
+        timestamp, targa, tipo_veicolo, numero_veicolo,
+        lavorazione_eseguita, note, lat, lng,
+        telaio, seriale_centralina, marca_veicolo
+      )
       VALUES (
         ${timestamp || new Date().toISOString()},
         ${targa || null},
@@ -22,7 +27,10 @@ export async function POST(req: NextRequest) {
         ${lavorazione_eseguita || null},
         ${note || null},
         ${location?.lat ?? null},
-        ${location?.lng ?? null}
+        ${location?.lng ?? null},
+        ${telaio || null},
+        ${seriale_centralina || null},
+        ${marca_veicolo || null}
       )
     `;
 
