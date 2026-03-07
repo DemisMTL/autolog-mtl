@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
-               telaio, seriale_centralina, marca_veicolo
+               telaio, seriale_centralina, marca_veicolo, cliente
         FROM records
         WHERE DATE(timestamp AT TIME ZONE 'Europe/Rome') = ${dateFilter}
         ORDER BY timestamp ASC
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
-               telaio, seriale_centralina, marca_veicolo
+               telaio, seriale_centralina, marca_veicolo, cliente
         FROM records
         ORDER BY timestamp DESC
         LIMIT 500
@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
       targa: r.targa,
       tipo_veicolo: r.tipo_veicolo,
       numero_veicolo: r.numero_veicolo,
+      cliente: r.cliente,
       lavorazione_eseguita: r.lavorazione_eseguita,
       note: r.note || '',
       lat: r.lat ? parseFloat(r.lat) : null,

@@ -145,13 +145,15 @@ export default function NewRecord() {
         }
 
         setIsAnalyzing(true);
+        // Invia anche la posizione per trovare il cliente via Places API
         try {
             const res = await fetch("/api/analyze", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     imagesBase64: photos,
-                    notes: noteText
+                    notes: noteText,
+                    location: location
                 }),
             });
 
@@ -187,6 +189,7 @@ export default function NewRecord() {
             telaio: teialoNorm,
             seriale_centralina: reviewData?.seriale_centralina || null,
             marca_veicolo: reviewData?.marca_veicolo || null,
+            cliente: reviewData?.cliente || null,
         };
 
         // 1. Salvataggio locale
@@ -226,6 +229,17 @@ export default function NewRecord() {
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
                         Controlla e correggi i dati estratti prima di salvarli nel Cloud.
                     </p>
+
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--accent)', marginBottom: '8px' }}>🏢 Cliente / Azienda</label>
+                        <input
+                            type="text"
+                            placeholder="Es. CABLOG, FERCAM..."
+                            value={reviewData.cliente || ""}
+                            onChange={e => setReviewData({ ...reviewData, cliente: e.target.value })}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(56,189,248,0.5)', color: 'white', fontSize: '1.1rem', fontWeight: '500' }}
+                        />
+                    </div>
 
                     <div>
                         <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--accent)', marginBottom: '8px' }}>Targa Veicolo</label>

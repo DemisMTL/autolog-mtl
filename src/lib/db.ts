@@ -24,6 +24,7 @@ export async function ensureTable() {
       telaio              TEXT,
       seriale_centralina  TEXT,
       marca_veicolo       TEXT,
+      cliente             TEXT,
       created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
@@ -31,4 +32,5 @@ export async function ensureTable() {
   await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS telaio TEXT`;
   await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS seriale_centralina TEXT`;
   await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS marca_veicolo TEXT`;
+  await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS cliente TEXT`;
 }

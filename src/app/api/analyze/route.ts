@@ -16,13 +16,38 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const rawImages: string[] = body.imagesBase64 ?? (body.imageBase64 ? [body.imageBase64] : []);
         const notes: string = body.notes || "";
+        const location: { lat: number, lng: number } | null = body.location || null;
 
         if (rawImages.length === 0) {
             return NextResponse.json({ error: "Nessuna immagine fornita." }, { status: 400 });
         }
 
+        // Ricerca aziende vicine tramite Google Places API se abbiamo le coordinate
+        let nearbyCompanies = "";
+        if (location && process.env.GOOGLE_MAPS_API_KEY) {
+            try {
+                const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.lat},${location.lng}&radius=300&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+                const placesRes = await fetch(placesUrl);
+                const placesData = await placesRes.json();
+
+                if (placesData.results && placesData.results.length > 0) {
+                    const companyNames = placesData.results
+                        .map((p: any) => p.name)
+                        // Filtra nomi generici o troppo corti
+                        .filter((name: string) => name.length > 3)
+                        .slice(0, 15) // Prendi le prime 15
+                        .join(", ");
+                    if (companyNames) {
+                        nearbyCompanies = `\n\nCONTESTO GEOGRAFICO:\nLe foto sono state scattate vicino a queste aziende/luoghi: ${companyNames}.\nUsa questo elenco per dedurre il "cliente" se riconosci loghi, scritte sul veicolo o contesto affine.`;
+                    }
+                }
+            } catch (err) {
+                console.warn("Errore fetch Google Places API:", err);
+            }
+        }
+
         const prompt = `Sei un assistente specializzato per officine meccaniche, in particolare per veicoli pesanti (camion, autocarri, semirimorchi).
-Analizza ${rawImages.length > 1 ? `queste ${rawImages.length} immagini dello stesso veicolo` : "questa immagine del veicolo"} insieme alle seguenti note dettate a voce: "${notes || "Nessuna nota inserita"}".
+Analizza ${rawImages.length > 1 ? `queste ${rawImages.length} immagini dello stesso veicolo` : "questa immagine del veicolo"} insieme alle seguenti note dettate a voce: "${notes || "Nessuna nota inserita"}".${nearbyCompanies}
 
 Estrai le seguenti informazioni e restituiscile ESCLUSIVAMENTE in formato JSON puro (senza markdown, senza backtick).
 
@@ -32,6 +57,7 @@ Regole obbligatorie per ogni campo:
 - "seriale_centralina": seriale del dispositivo/tachigrafo (es. "FMC640-23Q2-00032", "AUTA-FMC361"). Cerca sigle FMC, VR, Continental, Stoneridge, Siemens VDO. Se non visibile usa null.
 - "marca_veicolo": marca del veicolo (es. "Mercedes Benz", "Volvo", "Scania", "DAF", "MAN", "Iveco"). Se non deducibile usa null.
 - "numero_veicolo": numero aziendale interno (es. "893"). Se non visibile usa null.
+- "cliente": Il nome del cliente / azienda proprietaria del veicolo. Dedotto dai loghi sulle portiere (es. "CABLOG", "FERCAM"), dalle note vocali, o incrociando i loghi/note con il CONTESTO GEOGRAFICO fornito sopra. Se non riesci a dedurlo, usa null.
 - "tipo_veicolo": es. "Trattore stradale", "Camion", "Furgone", "Berlina", ecc.
 - "lavorazione_eseguita": tipo di intervento in buon italiano tecnico.
 
@@ -42,6 +68,7 @@ Schema JSON:
   "seriale_centralina": "stringa o null",
   "marca_veicolo": "stringa o null",
   "numero_veicolo": "stringa o null",
+  "cliente": "stringa o null",
   "tipo_veicolo": "stringa",
   "lavorazione_eseguita": "stringa"
 }`;

@@ -13,6 +13,10 @@ interface InterventRecord {
   note: string;
   lat: number | null;
   lng: number | null;
+  cliente?: string | null;
+  telaio?: string | null;
+  seriale_centralina?: string | null;
+  marca_veicolo?: string | null;
 }
 
 const VEHICLE_EMOJIS: { [key: string]: string } = {
@@ -45,6 +49,7 @@ function EditModal({ record, onSave, onClose }: {
   onClose: () => void;
 }) {
   const [form, setForm] = useState({
+    cliente: record.cliente || '',
     targa: record.targa || '',
     tipo_veicolo: record.tipo_veicolo || '',
     numero_veicolo: record.numero_veicolo || '',
@@ -82,6 +87,7 @@ function EditModal({ record, onSave, onClose }: {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {[
+            { label: '🏢 Cliente / Azienda', key: 'cliente' },
             { label: 'Targa', key: 'targa' },
             { label: 'Tipo Veicolo', key: 'tipo_veicolo' },
             { label: 'Numero Veicolo Aziendale', key: 'numero_veicolo' },
@@ -253,6 +259,9 @@ export default function Home() {
                       {[record.targa, record.numero_veicolo ? `· #${record.numero_veicolo}` : null]
                         .filter(Boolean).join(' ') || record.tipo_veicolo || 'Veicolo'}
                     </h3>
+                    {record.cliente && (
+                      <p style={{ color: 'var(--accent)', fontSize: '0.85rem', fontWeight: '500', marginBottom: '2px' }}>🏢 {record.cliente}</p>
+                    )}
                     <p>{record.lavorazione_eseguita || record.note || '—'}</p>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
