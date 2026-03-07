@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "missing_key");
+const MODEL = "gemini-1.5-flash"; // Modello stabile con supporto multi-immagine garantito
 
 export async function POST(req: NextRequest) {
     try {
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Nessuna immagine fornita." }, { status: 400 });
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: MODEL });
 
         const prompt = `Sei un assistente specializzato per officine meccaniche, in particolare per veicoli pesanti (camion, autocarri, semirimorchi).
 Analizza ${rawImages.length > 1 ? `queste ${rawImages.length} immagini dello stesso veicolo` : "questa immagine del veicolo"} insieme alle seguenti note dettate a voce: "${notes || "Nessuna nota inserita"}".

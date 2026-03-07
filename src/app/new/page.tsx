@@ -91,17 +91,37 @@ export default function NewRecord() {
     // Normalizza targa: toUpperCase e rimuove spazi
     const normalizePlate = (p: string) => p.replace(/\s+/g, '').toUpperCase();
 
+    // Comprime un'immagine via canvas a max 1280px, JPEG 80% — riduce drasticamente la dimensione
+    const compressImage = (dataUrl: string): Promise<string> =>
+        new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const MAX = 1280;
+                let { width, height } = img;
+                if (width > MAX || height > MAX) {
+                    if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+                    else { width = Math.round(width * MAX / height); height = MAX; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.80));
+            };
+            img.src = dataUrl;
+        });
+
     const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files) return;
         Array.from(files).forEach(file => {
             const reader = new FileReader();
-            reader.onload = (ev) => {
-                setPhotos(prev => [...prev, ev.target?.result as string]);
+            reader.onload = async (ev) => {
+                const compressed = await compressImage(ev.target?.result as string);
+                setPhotos(prev => [...prev, compressed]);
             };
             reader.readAsDataURL(file);
         });
-        // Reset input per permettere di selezionare lo stesso file di nuovo
         e.target.value = '';
     };
 
