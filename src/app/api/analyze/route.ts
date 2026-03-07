@@ -47,12 +47,19 @@ Schema JSON da restituire:
   "lavorazione_eseguita": "stringa"
 }`;
 
-        const imageParts = rawImages.map((img: string) => ({
-            inlineData: {
-                data: img.replace(/^data:image\/\w+;base64,/, ""),
-                mimeType: "image/jpeg" as const,
-            },
-        }));
+        // Costruisce le parti immagine estraendo il mimeType dal data URL
+        const imageParts = rawImages.map((img: string) => {
+            // Estrae il mimeType reale dal data URL (es. image/png, image/jpeg, image/heic)
+            const mimeMatch = img.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9+.-]+);base64,/);
+            const mimeType = (mimeMatch?.[1] || "image/jpeg") as "image/jpeg" | "image/png" | "image/webp" | "image/heic" | "image/heif";
+            const base64Data = img.replace(/^data:image\/[^;]+;base64,/, "");
+            return {
+                inlineData: {
+                    data: base64Data,
+                    mimeType,
+                },
+            };
+        });
 
         const result = await model.generateContent([prompt, ...imageParts]);
         const response = await result.response;
