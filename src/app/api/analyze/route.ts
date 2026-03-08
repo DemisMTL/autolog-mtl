@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
                                     latitude: location.lat,
                                     longitude: location.lng
                                 },
-                                radius: 700.0
+                                radius: 500.0
                             }
                         }
                     })
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
                         nearbyCompaniesText = `\n\nCONTESTO GEOGRAFICO:\nLe foto sono state scattate vicino a queste aziende/luoghi: ${companyNamesStr}.\nUsa questo elenco per dedurre il "cliente" se riconosci loghi, scritte sul veicolo o contesto affine.`;
                     }
                 }
-                console.log(`Trovate ${companyNamesList.length} aziende nei paraggi (700m):`, companyNamesList);
+                console.log(`Trovate ${companyNamesList.length} aziende nei paraggi (500m):`, companyNamesList);
             } catch (err) {
                 console.warn("Errore fetch Google Places API (New):", err);
             }
