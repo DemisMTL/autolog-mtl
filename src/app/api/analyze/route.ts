@@ -27,14 +27,32 @@ export async function POST(req: NextRequest) {
         let companyNamesList: string[] = [];
         if (location && process.env.GOOGLE_MAPS_API_KEY) {
             try {
-                const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.lat},${location.lng}&radius=1500&language=it&key=${process.env.GOOGLE_MAPS_API_KEY}`;
-                const placesRes = await fetch(placesUrl);
+                const placesRes = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
+                    method: "POST",
+                    headers: {
+                        "X-Goog-Api-Key": process.env.GOOGLE_MAPS_API_KEY,
+                        "X-Goog-FieldMask": "places.displayName",
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        maxResultCount: 20,
+                        locationRestriction: {
+                            circle: {
+                                center: {
+                                    latitude: location.lat,
+                                    longitude: location.lng
+                                },
+                                radius: 1500.0
+                            }
+                        }
+                    })
+                });
                 const placesData = await placesRes.json();
 
-                if (placesData.results && placesData.results.length > 0) {
-                    const companyNamesArray = placesData.results
-                        .map((p: any) => p.name)
-                        // Filtra nomi generici o troppo corti
+                if (placesData.places && placesData.places.length > 0) {
+                    const companyNamesArray = placesData.places
+                        .map((p: any) => p.displayName?.text)
+                        // Filtra nomi vuoti, generici o troppo corti
                         .filter((name: string) => name && name.length > 3)
                         .slice(0, 15); // Prendi le prime 15
 
@@ -46,7 +64,7 @@ export async function POST(req: NextRequest) {
                 }
                 console.log(`Trovate ${companyNamesList.length} aziende nei paraggi (1500m):`, companyNamesList);
             } catch (err) {
-                console.warn("Errore fetch Google Places API:", err);
+                console.warn("Errore fetch Google Places API (New):", err);
             }
         }
 
@@ -61,7 +79,7 @@ Regole obbligatorie per ogni campo:
 - "seriale_centralina": seriale del dispositivo/tachigrafo (es. "FMC640-23Q2-00032", "AUTA-FMC361"). Cerca sigle FMC, VR, Continental, Stoneridge, Siemens VDO. Se non visibile usa null.
 - "marca_veicolo": marca del veicolo (es. "Mercedes Benz", "Volvo", "Scania", "DAF", "MAN", "Iveco"). Se non deducibile usa null.
 - "numero_veicolo": numero aziendale interno (es. "893"). Se non visibile usa null.
-- "cliente": Il nome del cliente / azienda proprietaria del veicolo. Dedotto dai loghi sulle portiere (es. "CABLOG", "FERCAM"), dalle note vocali, o incrociando i loghi/note con il CONTESTO GEOGRAFICO fornito sopra. Se non riesci a dedurlo, usa null.
+- "cliente": Il nome del cliente / azienda proprietaria del veicolo. Dedotto dai loghi sulle portiere (es. "CABLOG", "FERCAM"), o incrociando i loghi col CONTESTO GEOGRAFICO fornito sopra. ATTENZIONE: Se la foto è uno scontrino tachigrafico, i nomi propri di persona (es. "Crisman Massimo") appartengono al CONDUCENTE, non al Cliente! Non usare MAI nomi propri di conducenti come Cliente. Se non riesci a dedurlo, usa null.
 - "tipo_veicolo": REGOLE OBBLIGATORIE: 1) Se la targa inizia per "XA" oppure ha 2 lettere e 5 numeri (es. AB12345), il tipo di veicolo DEVE ESSERE SOLO "Rimorchio". 2) Se nella foto c'è uno scontrino tachigrafico o i loghi VDO o STONERIDGE, il tipo DEVE ESSERE "Mezzo pesante > 3,5 ton". 3) Altrimenti usa nomi come "Trattore stradale", "Camion", "Furgone", "Berlina", ecc.
 - "lavorazione_eseguita": tipo di intervento in buon italiano tecnico.
 
