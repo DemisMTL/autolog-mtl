@@ -23,10 +23,10 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
-               telaio, seriale_centralina, marca_veicolo, cliente
+               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione
         FROM records
         ORDER BY timestamp DESC
-        LIMIT 500
+        LIMIT 100
       `;
     }
 
@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
       telaio: r.telaio,
       seriale_centralina: r.seriale_centralina,
       marca_veicolo: r.marca_veicolo,
+      anno_immatricolazione: r.anno_immatricolazione
     }));
 
     return NextResponse.json({ records });

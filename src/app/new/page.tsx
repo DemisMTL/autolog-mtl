@@ -199,6 +199,7 @@ export default function NewRecord() {
             seriale_centralina: reviewData?.seriale_centralina || null,
             marca_veicolo: reviewData?.marca_veicolo || null,
             cliente: reviewData?.cliente || null,
+            anno_immatricolazione: reviewData?.anno_immatricolazione || null,
         };
 
         // 1. Salvataggio locale
@@ -278,6 +279,17 @@ export default function NewRecord() {
                             value={reviewData.targa || ""}
                             onChange={e => setReviewData({ ...reviewData, targa: e.target.value.replace(/\s+/g, '').toUpperCase() })}
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', color: 'white', fontSize: '1.1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                        />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--accent)', marginBottom: '8px' }}>📅 Anno di Immatricolazione</label>
+                        <input
+                            type="text"
+                            placeholder="Es. 2020"
+                            value={reviewData.anno_immatricolazione || ""}
+                            onChange={e => setReviewData({ ...reviewData, anno_immatricolazione: e.target.value })}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)', color: 'white', fontSize: '1.1rem' }}
                         />
                     </div>
 

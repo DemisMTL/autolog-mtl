@@ -17,6 +17,7 @@ interface InterventRecord {
   telaio?: string | null;
   seriale_centralina?: string | null;
   marca_veicolo?: string | null;
+  anno_immatricolazione?: string | null;
 }
 
 const VEHICLE_EMOJIS: { [key: string]: string } = {
@@ -89,6 +90,7 @@ function EditModal({ record, onSave, onClose }: {
           {[
             { label: '🏢 Cliente / Azienda', key: 'cliente' },
             { label: 'Targa', key: 'targa' },
+            { label: '📅 Anno Immatricolazione', key: 'anno_immatricolazione' },
             { label: 'Tipo Veicolo', key: 'tipo_veicolo' },
             { label: 'Numero Veicolo Aziendale', key: 'numero_veicolo' },
           ].map(({ label, key }) => (
@@ -259,6 +261,11 @@ export default function Home() {
                       {[record.targa, record.numero_veicolo ? `· #${record.numero_veicolo}` : null]
                         .filter(Boolean).join(' ') || record.tipo_veicolo || 'Veicolo'}
                     </h3>
+                    {(record.marca_veicolo || record.anno_immatricolazione) && (
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>
+                        {record.marca_veicolo} {record.anno_immatricolazione ? `(${record.anno_immatricolazione})` : ''}
+                      </p>
+                    )}
                     {record.cliente && (
                       <p style={{ color: 'var(--accent)', fontSize: '0.85rem', fontWeight: '500', marginBottom: '2px' }}>🏢 {record.cliente}</p>
                     )}

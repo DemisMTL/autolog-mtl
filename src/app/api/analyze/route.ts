@@ -77,11 +77,12 @@ Regole obbligatorie per ogni campo:
 - "targa": MAIUSCOLO e SENZA SPAZI. Sugli scontrini VDO/tachigrafo la targa appare spesso nel formato "I /FE993NH" o "I /AB123CD" (dove "I /" è la sigla del paese Italia) — in quel caso estrai solo la parte alfanumerica senza la sigla paese (es. "FE993NH"). Può anche apparire come "TR / 5 3 4 1 8 8 2 2" (Turchia) o altri formati europei. Cerca la riga subito sotto "N. Telaio" o accanto alla sigla nazione. Se non visibile usa null.
 - "telaio": numero di telaio/VIN. Spesso su targhette VDO, scontrini ("N. Telaio"), etichette adesive. 17 caratteri alfanumerici (es. "WDF9634031B984316"). Senza spazi. Se non visibile usa null.
 - "seriale_centralina": seriale del dispositivo/tachigrafo (es. "FMC640-23Q2-00032", "AUTA-FMC361"). Cerca sigle FMC, VR, Continental, Stoneridge, Siemens VDO. Se non visibile usa null.
-- "marca_veicolo": marca del veicolo (es. "Mercedes Benz", "Volvo", "Scania", "DAF", "MAN", "Iveco"). Se non deducibile usa null.
+- "marca_veicolo": marca del veicolo. REGOLA OBBLIGATORIA: se estrai un "telaio", DEVI dedurre la marca dalle sue prime tre lettere (WMI): se inizia per "YV" è "Volvo", per "XLR" è "DAF", per "WJM" o "ZC" è "Iveco", per "WDF" o "W1" è "Mercedes-Benz", per "YS" è "Scania", per "WMA" è "MAN", per "VF" è "Renault Trucks". Se non è in queste o manca il telaio, deducila dai loghi. Altrimenti usa null.
 - "numero_veicolo": numero aziendale interno (es. "893"). Se non visibile usa null.
 - "cliente": Il nome del cliente / azienda proprietaria del veicolo. Dedotto dai loghi sulle portiere (es. "CABLOG", "FERCAM"), o incrociando i loghi col CONTESTO GEOGRAFICO fornito sopra. ATTENZIONE: Se la foto è uno scontrino tachigrafico, i nomi propri di persona (es. "Crisman Massimo") appartengono al CONDUCENTE, non al Cliente! Non usare MAI nomi propri di conducenti come Cliente. Se non riesci a dedurlo, usa null.
 - "tipo_veicolo": REGOLE OBBLIGATORIE: 1) Se la targa inizia per "XA" oppure ha 2 lettere e 5 numeri (es. AB12345), il tipo di veicolo DEVE ESSERE SOLO "Rimorchio". 2) Se nella foto c'è uno scontrino tachigrafico o i loghi VDO o STONERIDGE, il tipo DEVE ESSERE "Mezzo pesante > 3,5 ton". 3) Altrimenti usa nomi come "Trattore stradale", "Camion", "Furgone", "Berlina", ecc.
 - "lavorazione_eseguita": tipo di intervento in buon italiano tecnico.
+- "anno_immatricolazione": l'anno di immatricolazione del veicolo (es. "2020", "2018"). Dedurlo dalla targa italiana calcolando grossomodo l'anno (es. FG..=2016/17, FX..=2019/20, GA..=2020/21) o leggendo le date di installazione/calibrazione dallo scontrino tachigrafico se presente. Se impossibile stimarlo, usa null.
 
 Schema JSON:
 {
@@ -92,7 +93,8 @@ Schema JSON:
   "numero_veicolo": "stringa o null",
   "cliente": "stringa o null",
   "tipo_veicolo": "stringa",
-  "lavorazione_eseguita": "stringa"
+  "lavorazione_eseguita": "stringa",
+  "anno_immatricolazione": "stringa (solo anno a 4 cifre) o null"
 }`;
 
         // Costruisce le parti per ogni immagine
