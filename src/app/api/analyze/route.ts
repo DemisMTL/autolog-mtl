@@ -118,7 +118,17 @@ Schema JSON:
             const parsedData = JSON.parse(text);
             if (parsedData.targa) parsedData.targa = parsedData.targa.replace(/\s+/g, "").toUpperCase();
             if (parsedData.telaio) parsedData.telaio = parsedData.telaio.replace(/\s+/g, "").toUpperCase();
-            return NextResponse.json({ success: true, data: parsedData });
+
+            // Estrae la lista dei nomi se presente per il frontend, per dare i suggerimenti
+            let companyNamesList: string[] = [];
+            if (location && process.env.GOOGLE_MAPS_API_KEY && nearbyCompanies) {
+                const match = nearbyCompanies.match(/aziende\/luoghi: (.+)\./);
+                if (match) {
+                    companyNamesList = match[1].split(",").map(s => s.trim());
+                }
+            }
+
+            return NextResponse.json({ success: true, data: parsedData, nearby_companies: companyNamesList });
         } catch {
             console.error("JSON parsing error. Raw:", text);
             return NextResponse.json({ error: "Il modello non ha restituito un JSON valido." }, { status: 500 });

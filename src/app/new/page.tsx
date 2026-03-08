@@ -137,6 +137,8 @@ export default function NewRecord() {
         e.target.value = '';
     };
 
+    const [nearbyCompanies, setNearbyCompanies] = useState<string[]>([]);
+
     const handleAnalyze = async (e: React.FormEvent) => {
         e.preventDefault();
         if (photos.length === 0) {
@@ -159,7 +161,11 @@ export default function NewRecord() {
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Errore API backend");
+
             setReviewData(data.data);
+            if (data.nearby_companies) {
+                setNearbyCompanies(data.nearby_companies);
+            }
         } catch (err: any) {
             alert("⚠️ Errore IA:\n" + err.message);
         } finally {
@@ -239,6 +245,19 @@ export default function NewRecord() {
                             onChange={e => setReviewData({ ...reviewData, cliente: e.target.value })}
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(56,189,248,0.5)', color: 'white', fontSize: '1.1rem', fontWeight: '500' }}
                         />
+                        {nearbyCompanies.length > 0 && (
+                            <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                {nearbyCompanies.map((company, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => setReviewData({ ...reviewData, cliente: company })}
+                                        style={{ background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', color: 'var(--accent)', padding: '6px 12px', borderRadius: '16px', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                    >
+                                        + {company}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div>
