@@ -1,16 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: "AutoLog | Appunti Lavorazioni",
   description: "WebApp per la registrazione e catalogazione delle lavorazioni sui veicoli",
-  manifest: "/manifest.json", 
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -33,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it">
-      <body className={outfit.variable}>
+      <body className={inter.variable}>
         {children}
       </body>
     </html>
