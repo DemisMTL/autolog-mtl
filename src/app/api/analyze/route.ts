@@ -62,7 +62,7 @@ Regole obbligatorie per ogni campo:
 - "marca_veicolo": marca del veicolo (es. "Mercedes Benz", "Volvo", "Scania", "DAF", "MAN", "Iveco"). Se non deducibile usa null.
 - "numero_veicolo": numero aziendale interno (es. "893"). Se non visibile usa null.
 - "cliente": Il nome del cliente / azienda proprietaria del veicolo. Dedotto dai loghi sulle portiere (es. "CABLOG", "FERCAM"), dalle note vocali, o incrociando i loghi/note con il CONTESTO GEOGRAFICO fornito sopra. Se non riesci a dedurlo, usa null.
-- "tipo_veicolo": es. "Trattore stradale", "Camion", "Furgone", "Berlina", ecc.
+- "tipo_veicolo": REGOLE OBBLIGATORIE: 1) Se la targa inizia per "XA" oppure ha 2 lettere e 5 numeri (es. AB12345), il tipo di veicolo DEVE ESSERE SOLO "Rimorchio". 2) Se nella foto c'è uno scontrino tachigrafico o i loghi VDO o STONERIDGE, il tipo DEVE ESSERE "Mezzo pesante > 3,5 ton". 3) Altrimenti usa nomi come "Trattore stradale", "Camion", "Furgone", "Berlina", ecc.
 - "lavorazione_eseguita": tipo di intervento in buon italiano tecnico.
 
 Schema JSON:

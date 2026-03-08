@@ -12,6 +12,7 @@ export default function NewRecord() {
     const [photos, setPhotos] = useState<string[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [reviewData, setReviewData] = useState<any>(null);
+    const [nearbyCompanies, setNearbyCompanies] = useState<string[]>([]);
 
     // Riferimento all'istanza
     const recognitionRef = useRef<any>(null);
@@ -136,8 +137,6 @@ export default function NewRecord() {
         });
         e.target.value = '';
     };
-
-    const [nearbyCompanies, setNearbyCompanies] = useState<string[]>([]);
 
     const handleAnalyze = async (e: React.FormEvent) => {
         e.preventDefault();
