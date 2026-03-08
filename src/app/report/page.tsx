@@ -18,6 +18,7 @@ interface SheetRecord {
     seriale_centralina?: string | null;
     marca_veicolo?: string | null;
     anno_immatricolazione?: string | null;
+    marca_modello_tachigrafo?: string | null;
 }
 
 interface LocationCluster {
@@ -127,6 +128,7 @@ async function generatePDF(clusters: LocationCluster[], dateLabel: string, clien
             r.targa || '—',
             r.cliente || '—',
             `${r.marca_veicolo || ''} ${r.anno_immatricolazione ? `(${r.anno_immatricolazione})` : ''}`.trim() || '—',
+            r.marca_modello_tachigrafo || '—',
             `${r.telaio || '—'}\n${r.seriale_centralina || '—'}`,
             r.tipo_veicolo || '—',
             r.lavorazione_eseguita || r.note || '—',
@@ -134,7 +136,7 @@ async function generatePDF(clusters: LocationCluster[], dateLabel: string, clien
 
         autoTable(doc, {
             startY: y,
-            head: [['Orario', 'Targa', 'Cliente', 'Marca (Anno)', 'Telaio / SN', 'V. Tipo', 'Lavorazione']],
+            head: [['Orario', 'Targa', 'Cliente', 'Marca (Anno)', 'Tachigrafo', 'Telaio / SN', 'V. Tipo', 'Lavorazione']],
             body: tableData,
             theme: 'striped',
             headStyles: { fillColor: [30, 41, 59], textColor: [248, 250, 252] },
@@ -143,10 +145,11 @@ async function generatePDF(clusters: LocationCluster[], dateLabel: string, clien
                 0: { cellWidth: 15 },
                 1: { cellWidth: 20 },
                 2: { cellWidth: 25 },
-                3: { cellWidth: 30 },
-                4: { cellWidth: 40 },
-                5: { cellWidth: 20 },
-                6: { cellWidth: 'auto' },
+                3: { cellWidth: 25 },
+                4: { cellWidth: 25 },
+                5: { cellWidth: 40 },
+                6: { cellWidth: 15 },
+                7: { cellWidth: 'auto' },
             },
             margin: { left: 14, right: 14 },
         });
@@ -163,7 +166,7 @@ async function generatePDF(clusters: LocationCluster[], dateLabel: string, clien
 
 // ─── Generazione CSV ──────────────────────────────────────────────────────────
 function downloadCSV(clusters: LocationCluster[], clientFilter: string) {
-    const header = ['Data/Ora', 'Location', 'Cliente', 'Targa', 'Marca', 'Anno Imm.', 'Tipo Veicolo', 'Telaio', 'SN Centralina', 'Lavorazione', 'Note'];
+    const header = ['Data/Ora', 'Location', 'Cliente', 'Targa', 'Marca', 'Anno Imm.', 'Tachigrafo', 'Tipo Veicolo', 'Telaio', 'SN Centralina', 'Lavorazione', 'Note'];
     let csvRows = [header.join(';')];
 
     for (const c of clusters) {
@@ -177,6 +180,7 @@ function downloadCSV(clusters: LocationCluster[], clientFilter: string) {
                 `"${r.targa || ''}"`,
                 `"${r.marca_veicolo || ''}"`,
                 `"${r.anno_immatricolazione || ''}"`,
+                `"${r.marca_modello_tachigrafo || ''}"`,
                 `"${r.tipo_veicolo || ''}"`,
                 `"${r.telaio || ''}"`,
                 `"${r.seriale_centralina || ''}"`,
@@ -227,6 +231,7 @@ async function generateSinglePDF(record: SheetRecord, locationName: string) {
     addRow('Targa', record.targa || '');
     if (record.numero_veicolo) addRow('Numero Flotta', record.numero_veicolo);
     addRow('Marca / Anno', `${record.marca_veicolo || ''} ${record.anno_immatricolazione ? `(${record.anno_immatricolazione})` : ''}`.trim());
+    if (record.marca_modello_tachigrafo) addRow('Tachigrafo Info', record.marca_modello_tachigrafo);
     addRow('Tipo Veicolo', record.tipo_veicolo || '');
     addRow('Telaio', record.telaio || '');
     addRow('S/N Apparato', record.seriale_centralina || '');
@@ -471,6 +476,11 @@ export default function ReportPage() {
                                                             {rec.cliente && (
                                                                 <span style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: '500', marginTop: '2px' }}>
                                                                     🏢 {rec.cliente}
+                                                                </span>
+                                                            )}
+                                                            {rec.marca_modello_tachigrafo && (
+                                                                <span style={{ fontSize: '0.8rem', color: '#a78bfa', marginTop: '2px' }}>
+                                                                    ⏱️ {rec.marca_modello_tachigrafo}
                                                                 </span>
                                                             )}
                                                         </div>

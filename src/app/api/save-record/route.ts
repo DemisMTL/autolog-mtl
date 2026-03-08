@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     const {
       targa, tipo_veicolo, numero_veicolo,
       lavorazione_eseguita, note, location, timestamp,
-      telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione
+      telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo
     } = body;
 
     await ensureTable();
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
         timestamp, targa, tipo_veicolo, numero_veicolo,
         lavorazione_eseguita, note, lat, lng,
         telaio, seriale_centralina, marca_veicolo, cliente,
-        anno_immatricolazione
+        anno_immatricolazione, marca_modello_tachigrafo
       )
       VALUES (
         ${timestamp || new Date().toISOString()},
@@ -33,7 +33,8 @@ export async function POST(req: NextRequest) {
         ${seriale_centralina || null},
         ${marca_veicolo || null},
         ${cliente || null},
-        ${anno_immatricolazione || null}
+        ${anno_immatricolazione || null},
+        ${marca_modello_tachigrafo || null}
       )
     `;
 

@@ -26,6 +26,7 @@ export async function ensureTable() {
       marca_veicolo       TEXT,
       cliente             TEXT,
       anno_immatricolazione TEXT,
+      marca_modello_tachigrafo TEXT,
       created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
@@ -35,4 +36,5 @@ export async function ensureTable() {
   await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS marca_veicolo TEXT`;
   await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS cliente TEXT`;
   await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS anno_immatricolazione TEXT`;
+  await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS marca_modello_tachigrafo TEXT`;
 }

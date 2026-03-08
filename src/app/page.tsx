@@ -18,6 +18,7 @@ interface InterventRecord {
   seriale_centralina?: string | null;
   marca_veicolo?: string | null;
   anno_immatricolazione?: string | null;
+  marca_modello_tachigrafo?: string | null;
 }
 
 const VEHICLE_EMOJIS: { [key: string]: string } = {
@@ -54,6 +55,7 @@ function EditModal({ record, onSave, onClose }: {
     targa: record.targa || '',
     tipo_veicolo: record.tipo_veicolo || '',
     numero_veicolo: record.numero_veicolo || '',
+    marca_modello_tachigrafo: record.marca_modello_tachigrafo || '',
     lavorazione_eseguita: record.lavorazione_eseguita || '',
     note: record.note || '',
   });
@@ -93,6 +95,7 @@ function EditModal({ record, onSave, onClose }: {
             { label: '📅 Anno Immatricolazione', key: 'anno_immatricolazione' },
             { label: 'Tipo Veicolo', key: 'tipo_veicolo' },
             { label: 'Numero Veicolo Aziendale', key: 'numero_veicolo' },
+            { label: '⏱️ Marca/Versione Tachigrafo', key: 'marca_modello_tachigrafo' },
           ].map(({ label, key }) => (
             <div key={key}>
               <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{label}</label>
@@ -265,6 +268,9 @@ export default function Home() {
                       <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>
                         {record.marca_veicolo} {record.anno_immatricolazione ? `(${record.anno_immatricolazione})` : ''}
                       </p>
+                    )}
+                    {record.marca_modello_tachigrafo && (
+                      <p style={{ color: '#a78bfa', fontSize: '0.85rem', marginBottom: '2px' }}>⏱️ {record.marca_modello_tachigrafo}</p>
                     )}
                     {record.cliente && (
                       <p style={{ color: 'var(--accent)', fontSize: '0.85rem', fontWeight: '500', marginBottom: '2px' }}>🏢 {record.cliente}</p>

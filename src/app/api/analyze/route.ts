@@ -1,4 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getDb, ensureTable } from '@/lib/db';
+
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371000;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 // Chiama la REST API Gemini direttamente su v1 (non v1beta che ha modelli deprecati)
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent";
@@ -22,10 +31,40 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Nessuna immagine fornita." }, { status: 400 });
         }
 
-        // Ricerca aziende vicine tramite Google Places API se abbiamo le coordinate
+        // 1. Controllo Continuità Cliente (raggio 200m dallo stesso giorno)
+        let clienteBloccato: string | null = null;
+        if (location) {
+            try {
+                await ensureTable();
+                const sql = getDb();
+                const lastRecord = await sql`
+                    SELECT lat, lng, cliente, timestamp
+                    FROM records
+                    WHERE lat IS NOT NULL AND lng IS NOT NULL AND cliente IS NOT NULL
+                    ORDER BY timestamp DESC LIMIT 1
+                `;
+                if (lastRecord.length > 0) {
+                    const rec = lastRecord[0];
+                    const now = new Date();
+                    const recTime = new Date(rec.timestamp);
+                    // Controllo se è della stessa giornata e se la distanza è <= 200m
+                    if (now.getDate() === recTime.getDate() && now.getMonth() === recTime.getMonth() && now.getFullYear() === recTime.getFullYear()) {
+                        const dist = haversineMeters(rec.lat, rec.lng, location.lat, location.lng);
+                        if (dist <= 200) {
+                            clienteBloccato = rec.cliente;
+                            console.log(`Continuità Cliente attivata: distanza ${dist.toFixed(0)}m, cliente: ${clienteBloccato}`);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Errore fetch continuità cliente:", err);
+            }
+        }
+
+        // 2. Ricerca aziende vicine tramite Google Places API se abbiamo le coordinate E non abbiamo bloccato il cliente
         let nearbyCompaniesText = "";
         let companyNamesList: string[] = [];
-        if (location && process.env.GOOGLE_MAPS_API_KEY) {
+        if (location && process.env.GOOGLE_MAPS_API_KEY && !clienteBloccato) {
             try {
                 const placesRes = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
                     method: "POST",
@@ -68,8 +107,13 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        let continuityText = "";
+        if (clienteBloccato) {
+            continuityText = `\n\nCLIENTE BLOCCATO: Il sistema ha determinato, in base alla posizione geografica invariata dall'ultimo veicolo analizzato, che il cliente proprietario o luogo lavori è ESATTAMENTE "${clienteBloccato}". IMPONILO nel campo 'cliente' senza porsi dubbi e ignorando nomi di conducenti o etichette discordanti.`;
+        }
+
         const prompt = `Sei un assistente specializzato per officine meccaniche, in particolare per veicoli pesanti (camion, autocarri, semirimorchi).
-Analizza ${rawImages.length > 1 ? `queste ${rawImages.length} immagini dello stesso veicolo` : "questa immagine del veicolo"} insieme alle seguenti note dettate a voce: "${notes || "Nessuna nota inserita"}".${nearbyCompaniesText}
+Analizza ${rawImages.length > 1 ? `queste ${rawImages.length} immagini dello stesso veicolo` : "questa immagine del veicolo"} insieme alle seguenti note dettate a voce: "${notes || "Nessuna nota inserita"}".${nearbyCompaniesText}${continuityText}
 
 Estrai le seguenti informazioni e restituiscile ESCLUSIVAMENTE in formato JSON puro (senza markdown, senza backtick).
 
@@ -79,10 +123,11 @@ Regole obbligatorie per ogni campo:
 - "seriale_centralina": seriale del dispositivo/tachigrafo (es. "FMC640-23Q2-00032", "AUTA-FMC361"). Cerca sigle FMC, VR, Continental, Stoneridge, Siemens VDO. Se non visibile usa null.
 - "marca_veicolo": marca del veicolo. REGOLA OBBLIGATORIA: se estrai un "telaio", DEVI dedurre la marca dalle sue prime tre lettere (WMI): se inizia per "YV" è "Volvo", per "XLR" è "DAF", per "WJM" o "ZC" è "Iveco", per "WDF" o "W1" è "Mercedes-Benz", per "YS" è "Scania", per "WMA" è "MAN", per "VF" è "Renault Trucks". Se non è in queste o manca il telaio, deducila dai loghi. Altrimenti usa null.
 - "numero_veicolo": numero aziendale interno (es. "893"). Se non visibile usa null.
-- "cliente": Il nome del cliente / azienda proprietaria del veicolo. Dedotto dai loghi sulle portiere (es. "CABLOG", "FERCAM"), o incrociando i loghi col CONTESTO GEOGRAFICO fornito sopra. ATTENZIONE: Se la foto è uno scontrino tachigrafico, i nomi propri di persona (es. "Crisman Massimo") appartengono al CONDUCENTE, non al Cliente! Non usare MAI nomi propri di conducenti come Cliente. Se non riesci a dedurlo, usa null.
+- "cliente": Il nome del cliente / azienda proprietaria del veicolo. Deducibile dai loghi sulle portiere (es. "CABLOG", "FERCAM"). Se hai un CONTESTO GEOGRAFICO, incrocia i nomi dell'elenco aziendale col veicolo: se in foto intravedi un adesivo o una scritta simile a uno dei NOMI IN ELENCO GPS, consideralo una chiara conferma ed elegge quello come Cliente indiscusso. ATTENZIONE: Se la foto è uno scontrino tachigrafico, i nomi propri di persona (es. "Crisman Massimo") appartengono al CONDUCENTE, non al Cliente! Non usare MAI nomi propri di conducenti come Cliente. Se non riesci a dedurlo o non hai conferme incrociate sicure, usa null. (Ignora se CLIENTE BLOCCATO è presente).
 - "tipo_veicolo": REGOLE OBBLIGATORIE: 1) Se la targa inizia per "XA" oppure ha 2 lettere e 5 numeri (es. AB12345), il tipo di veicolo DEVE ESSERE SOLO "Rimorchio". 2) Se nella foto c'è uno scontrino tachigrafico o i loghi VDO o STONERIDGE, il tipo DEVE ESSERE "Mezzo pesante > 3,5 ton". 3) Altrimenti usa nomi come "Trattore stradale", "Camion", "Furgone", "Berlina", ecc.
 - "lavorazione_eseguita": tipo di intervento in buon italiano tecnico.
 - "anno_immatricolazione": l'anno di immatricolazione del veicolo (es. "2020", "2018"). Dedurlo dalla targa italiana calcolando grossomodo l'anno (es. FG..=2016/17, FX..=2019/20, GA..=2020/21) o leggendo le date di installazione/calibrazione dallo scontrino tachigrafico se presente. Se impossibile stimarlo, usa null.
+- "marca_modello_tachigrafo": MARCA E VERSIONE del Tachigrafo, da leggere rigorosamente se la foto è uno scontrino tachigrafico o targhetta tecnica. Esempi: "VDO V2022", "Stoneridge SE5000", "VDO Rel. 3.0". Se non visibile o foto incerta, usa null. Cerca esplicitamente marche come VDO, Stoneridge, e diciture come "Rel. 1.4", "Vers. 2022", "V 2.0" accoppiandole.
 
 Schema JSON:
 {
@@ -94,7 +139,8 @@ Schema JSON:
   "cliente": "stringa o null",
   "tipo_veicolo": "stringa",
   "lavorazione_eseguita": "stringa",
-  "anno_immatricolazione": "stringa (solo anno a 4 cifre) o null"
+  "anno_immatricolazione": "stringa (solo anno a 4 cifre) o null",
+  "marca_modello_tachigrafo": "stringa o null"
 }`;
 
         // Costruisce le parti per ogni immagine
@@ -147,7 +193,8 @@ Schema JSON:
             const debugInfo = {
                 hasLocation: !!location,
                 hasMapKey: !!process.env.GOOGLE_MAPS_API_KEY,
-                placesFound: companyNamesList.length
+                placesFound: companyNamesList.length,
+                cliente_bloccato: !!clienteBloccato
             };
             return NextResponse.json({ success: true, data: parsedData, nearby_companies: companyNamesList, debug_info: debugInfo });
         } catch {

@@ -200,6 +200,7 @@ export default function NewRecord() {
             marca_veicolo: reviewData?.marca_veicolo || null,
             cliente: reviewData?.cliente || null,
             anno_immatricolazione: reviewData?.anno_immatricolazione || null,
+            marca_modello_tachigrafo: reviewData?.marca_modello_tachigrafo || null,
         };
 
         // 1. Salvataggio locale
@@ -242,6 +243,12 @@ export default function NewRecord() {
 
                     <div>
                         <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--accent)', marginBottom: '8px' }}>🏢 Cliente / Azienda</label>
+                        {debugInfo?.cliente_bloccato && (
+                            <div style={{ marginBottom: '12px', padding: '12px', background: 'rgba(56,189,248,0.1)', borderLeft: '4px solid var(--accent)', borderRadius: '0 8px 8px 0', fontSize: '0.9rem', color: 'white' }}>
+                                📍 <strong>Cliente Confermato in Automatico</strong><br />
+                                <span style={{ color: 'var(--text-secondary)' }}>Dall'ultima registrazione (&lt; 200m di distanza).</span>
+                            </div>
+                        )}
                         <input
                             type="text"
                             placeholder="Es. CABLOG, FERCAM..."
@@ -344,6 +351,17 @@ export default function NewRecord() {
                             value={reviewData.seriale_centralina || ""}
                             onChange={e => setReviewData({ ...reviewData, seriale_centralina: e.target.value })}
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(167,139,250,0.4)', color: 'white', fontSize: '1rem', letterSpacing: '0.05em', fontFamily: 'monospace' }}
+                        />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.9rem', color: '#a78bfa', marginBottom: '8px' }}>⏱️ Marca/Versione Tachigrafo</label>
+                        <input
+                            type="text"
+                            placeholder="Es. VDO V2022 o Stoneridge SE5000"
+                            value={reviewData.marca_modello_tachigrafo || ""}
+                            onChange={e => setReviewData({ ...reviewData, marca_modello_tachigrafo: e.target.value })}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(167,139,250,0.4)', color: 'white', fontSize: '1.1rem' }}
                         />
                     </div>
 
