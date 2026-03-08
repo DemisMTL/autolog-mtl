@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
         let companyNamesList: string[] = [];
         if (location && process.env.GOOGLE_MAPS_API_KEY) {
             try {
-                const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.lat},${location.lng}&radius=300&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+                const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.lat},${location.lng}&radius=500&language=it&key=${process.env.GOOGLE_MAPS_API_KEY}`;
                 const placesRes = await fetch(placesUrl);
                 const placesData = await placesRes.json();
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
                     const companyNamesArray = placesData.results
                         .map((p: any) => p.name)
                         // Filtra nomi generici o troppo corti
-                        .filter((name: string) => name.length > 3)
+                        .filter((name: string) => name && name.length > 3)
                         .slice(0, 15); // Prendi le prime 15
 
                     if (companyNamesArray.length > 0) {
@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
                         nearbyCompaniesText = `\n\nCONTESTO GEOGRAFICO:\nLe foto sono state scattate vicino a queste aziende/luoghi: ${companyNamesStr}.\nUsa questo elenco per dedurre il "cliente" se riconosci loghi, scritte sul veicolo o contesto affine.`;
                     }
                 }
+                console.log(`Trovate ${companyNamesList.length} aziende nei paraggi (500m):`, companyNamesList);
             } catch (err) {
                 console.warn("Errore fetch Google Places API:", err);
             }
