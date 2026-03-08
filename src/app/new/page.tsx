@@ -165,6 +165,15 @@ export default function NewRecord() {
             if (data.nearby_companies) {
                 setNearbyCompanies(data.nearby_companies);
             }
+            if (data.debug_info) {
+                if (!data.debug_info.hasMapKey) {
+                    alert("⚠️ INFO DI DEBUG: Manca la GOOGLE_MAPS_API_KEY su Vercel! Decretata assente.");
+                } else if (!data.debug_info.hasLocation) {
+                    alert("⚠️ INFO DI DEBUG: Nessuna coordinata GPS ricevuta dal telefono. Ricerca aziende evitata.");
+                } else if (data.debug_info.placesFound === 0) {
+                    alert("⚠️ INFO DI DEBUG: Google Maps non ha trovato nessuna azienda nel raggio di 500m dalle tue coordinate esatte.");
+                }
+            }
         } catch (err: any) {
             alert("⚠️ Errore IA:\n" + err.message);
         } finally {

@@ -124,7 +124,12 @@ Schema JSON:
             if (parsedData.telaio) parsedData.telaio = parsedData.telaio.replace(/\s+/g, "").toUpperCase();
 
             // Ritorna le aziende dirette trovate da Google (se presenti)
-            return NextResponse.json({ success: true, data: parsedData, nearby_companies: companyNamesList });
+            const debugInfo = {
+                hasLocation: !!location,
+                hasMapKey: !!process.env.GOOGLE_MAPS_API_KEY,
+                placesFound: companyNamesList.length
+            };
+            return NextResponse.json({ success: true, data: parsedData, nearby_companies: companyNamesList, debug_info: debugInfo });
         } catch {
             console.error("JSON parsing error. Raw:", text);
             return NextResponse.json({ error: "Il modello non ha restituito un JSON valido." }, { status: 500 });
