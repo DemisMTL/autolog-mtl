@@ -13,6 +13,7 @@ export default function NewRecord() {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [reviewData, setReviewData] = useState<any>(null);
     const [nearbyCompanies, setNearbyCompanies] = useState<string[]>([]);
+    const [debugInfo, setDebugInfo] = useState<any>(null);
 
     // Riferimento all'istanza
     const recognitionRef = useRef<any>(null);
@@ -166,13 +167,7 @@ export default function NewRecord() {
                 setNearbyCompanies(data.nearby_companies);
             }
             if (data.debug_info) {
-                if (!data.debug_info.hasMapKey) {
-                    alert("⚠️ INFO DI DEBUG: Manca la GOOGLE_MAPS_API_KEY su Vercel! Decretata assente.");
-                } else if (!data.debug_info.hasLocation) {
-                    alert("⚠️ INFO DI DEBUG: Nessuna coordinata GPS ricevuta dal telefono. Ricerca aziende evitata.");
-                } else if (data.debug_info.placesFound === 0) {
-                    alert("⚠️ INFO DI DEBUG: Google Maps non ha trovato nessuna azienda nel raggio di 500m dalle tue coordinate esatte.");
-                }
+                setDebugInfo(data.debug_info);
             }
         } catch (err: any) {
             alert("⚠️ Errore IA:\n" + err.message);
@@ -253,6 +248,14 @@ export default function NewRecord() {
                             onChange={e => setReviewData({ ...reviewData, cliente: e.target.value })}
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(56,189,248,0.5)', color: 'white', fontSize: '1.1rem', fontWeight: '500' }}
                         />
+                        {debugInfo && (
+                            <div style={{ marginTop: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                {!debugInfo.hasMapKey && "⚠️ Server: API Key Google Maps mancante."}
+                                {debugInfo.hasMapKey && !debugInfo.hasLocation && "📍 GPS non disponibile. Ricerca aziende limitrofe disabilitata."}
+                                {debugInfo.hasMapKey && debugInfo.hasLocation && debugInfo.placesFound === 0 && "📍 Nessuna azienda trovata nel raggio di 1.5km."}
+                                {debugInfo.hasMapKey && debugInfo.hasLocation && debugInfo.placesFound > 0 && `📍 ${debugInfo.placesFound} aziende trovate nei paraggi:`}
+                            </div>
+                        )}
                         {nearbyCompanies.length > 0 && (
                             <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                 {nearbyCompanies.map((company, idx) => (
