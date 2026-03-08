@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
         }
 
         // Ricerca aziende vicine tramite Google Places API se abbiamo le coordinate
-        let nearbyCompanies = "";
+        let nearbyCompaniesText = "";
+        let companyNamesList: string[] = [];
         if (location && process.env.GOOGLE_MAPS_API_KEY) {
             try {
                 const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location.lat},${location.lng}&radius=300&key=${process.env.GOOGLE_MAPS_API_KEY}`;
@@ -31,14 +32,16 @@ export async function POST(req: NextRequest) {
                 const placesData = await placesRes.json();
 
                 if (placesData.results && placesData.results.length > 0) {
-                    const companyNames = placesData.results
+                    const companyNamesArray = placesData.results
                         .map((p: any) => p.name)
                         // Filtra nomi generici o troppo corti
                         .filter((name: string) => name.length > 3)
-                        .slice(0, 15) // Prendi le prime 15
-                        .join(", ");
-                    if (companyNames) {
-                        nearbyCompanies = `\n\nCONTESTO GEOGRAFICO:\nLe foto sono state scattate vicino a queste aziende/luoghi: ${companyNames}.\nUsa questo elenco per dedurre il "cliente" se riconosci loghi, scritte sul veicolo o contesto affine.`;
+                        .slice(0, 15); // Prendi le prime 15
+
+                    if (companyNamesArray.length > 0) {
+                        companyNamesList = companyNamesArray;
+                        const companyNamesStr = companyNamesArray.join(", ");
+                        nearbyCompaniesText = `\n\nCONTESTO GEOGRAFICO:\nLe foto sono state scattate vicino a queste aziende/luoghi: ${companyNamesStr}.\nUsa questo elenco per dedurre il "cliente" se riconosci loghi, scritte sul veicolo o contesto affine.`;
                     }
                 }
             } catch (err) {
@@ -47,7 +50,7 @@ export async function POST(req: NextRequest) {
         }
 
         const prompt = `Sei un assistente specializzato per officine meccaniche, in particolare per veicoli pesanti (camion, autocarri, semirimorchi).
-Analizza ${rawImages.length > 1 ? `queste ${rawImages.length} immagini dello stesso veicolo` : "questa immagine del veicolo"} insieme alle seguenti note dettate a voce: "${notes || "Nessuna nota inserita"}".${nearbyCompanies}
+Analizza ${rawImages.length > 1 ? `queste ${rawImages.length} immagini dello stesso veicolo` : "questa immagine del veicolo"} insieme alle seguenti note dettate a voce: "${notes || "Nessuna nota inserita"}".${nearbyCompaniesText}
 
 Estrai le seguenti informazioni e restituiscile ESCLUSIVAMENTE in formato JSON puro (senza markdown, senza backtick).
 
@@ -119,15 +122,7 @@ Schema JSON:
             if (parsedData.targa) parsedData.targa = parsedData.targa.replace(/\s+/g, "").toUpperCase();
             if (parsedData.telaio) parsedData.telaio = parsedData.telaio.replace(/\s+/g, "").toUpperCase();
 
-            // Estrae la lista dei nomi se presente per il frontend, per dare i suggerimenti
-            let companyNamesList: string[] = [];
-            if (location && process.env.GOOGLE_MAPS_API_KEY && nearbyCompanies) {
-                const match = nearbyCompanies.match(/aziende\/luoghi: (.+)\./);
-                if (match) {
-                    companyNamesList = match[1].split(",").map(s => s.trim());
-                }
-            }
-
+            // Ritorna le aziende dirette trovate da Google (se presenti)
             return NextResponse.json({ success: true, data: parsedData, nearby_companies: companyNamesList });
         } catch {
             console.error("JSON parsing error. Raw:", text);
