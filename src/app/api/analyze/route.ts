@@ -127,7 +127,7 @@ Regole obbligatorie per ogni campo:
 - "tipo_veicolo": REGOLE OBBLIGATORIE: 1) Se la targa inizia per "XA" oppure ha 2 lettere e 5 numeri (es. AB12345), il tipo di veicolo DEVE ESSERE SOLO "Rimorchio". 2) Se nella foto c'è uno scontrino tachigrafico o i loghi VDO o STONERIDGE, il tipo DEVE ESSERE "Mezzo pesante > 3,5 ton". 3) Altrimenti usa nomi come "Trattore stradale", "Camion", "Furgone", "Berlina", ecc.
 - "lavorazione_eseguita": tipo di intervento in buon italiano tecnico.
 - "anno_immatricolazione": l'anno di immatricolazione del veicolo (es. "2020", "2018"). Dedurlo dalla targa italiana calcolando grossomodo l'anno (es. FG..=2016/17, FX..=2019/20, GA..=2020/21) o leggendo le date di installazione/calibrazione dallo scontrino tachigrafico se presente. Se impossibile stimarlo, usa null.
-- "marca_modello_tachigrafo": MARCA E VERSIONE del Tachigrafo, da leggere rigorosamente se la foto è uno scontrino tachigrafico o targhetta tecnica. Esempi: "VDO V2022", "Stoneridge SE5000", "VDO Rel. 3.0". Se non visibile o foto incerta, usa null. Cerca esplicitamente marche come VDO, Stoneridge, e diciture come "Rel. 1.4", "Vers. 2022", "V 2.0" accoppiandole.
+- "marca_modello_tachigrafo": MARCA E VERSIONE del Tachigrafo, da leggere rigorosamente se la foto è uno scontrino tachigrafico o targhetta tecnica. Cerca esplicitamente marche come VDO o Stoneridge e accoppiale alla versione esatta. Sulla base degli scontrini, le versioni sono spesso scritte (anche in fondo) come "GEN2 V2", "V 4126", "V 2223", "V 4072", "Rel. 1.4", ecc. Esempi di output corretti: "VDO GEN2 V2", "VDO V 4126", "Stoneridge SE5000", "VDO Rel. 3.0". Se non visibile o incerto, usa null.
 
 Schema JSON:
 {
