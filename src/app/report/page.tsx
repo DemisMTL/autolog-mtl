@@ -362,7 +362,7 @@ export default function ReportPage() {
                                     value={clientFilter}
                                     onChange={e => setClientFilter(e.target.value)}
                                     style={{
-                                        background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.3)',
+                                        background: 'rgba(211,47,47,0.1)', border: '1px solid rgba(211,47,47,0.3)',
                                         color: 'var(--text-primary)', borderRadius: '12px', padding: '10px 14px',
                                         fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none'
                                     }}
@@ -440,7 +440,7 @@ export default function ReportPage() {
                             {filteredClustersForUI.map((cluster, idx) => (
                                 <section key={idx} className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
                                     {/* Header ubicazione */}
-                                    <div style={{ padding: '18px 20px', background: 'rgba(56,189,248,0.07)', borderBottom: '1px solid var(--glass-border)' }}>
+                                    <div style={{ padding: '18px 20px', background: 'rgba(211,47,47,0.07)', borderBottom: '1px solid var(--glass-border)' }}>
                                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                                             <span style={{ fontSize: '1.4rem', marginTop: '2px' }}>📍</span>
                                             <div style={{ flex: 1 }}>
@@ -450,7 +450,7 @@ export default function ReportPage() {
                                                 </p>
                                             </div>
                                             <span style={{
-                                                background: 'rgba(56,189,248,0.15)', color: 'var(--accent)', padding: '4px 10px',
+                                                background: 'rgba(211,47,47,0.15)', color: 'var(--accent)', padding: '4px 10px',
                                                 borderRadius: '20px', fontSize: '0.8rem', fontWeight: '700'
                                             }}>
                                                 #{idx + 1}
@@ -479,7 +479,7 @@ export default function ReportPage() {
                                                                 </span>
                                                             )}
                                                             {rec.marca_modello_tachigrafo && (
-                                                                <span style={{ fontSize: '0.8rem', color: '#a78bfa', marginTop: '2px' }}>
+                                                                <span style={{ fontSize: '0.8rem', color: '#e57373', marginTop: '2px' }}>
                                                                     ⏱️ {rec.marca_modello_tachigrafo}
                                                                 </span>
                                                             )}

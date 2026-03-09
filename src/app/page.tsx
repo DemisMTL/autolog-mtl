@@ -212,7 +212,7 @@ export default function Home() {
         </div>
         <Link href="/report" style={{ textDecoration: 'none' }}>
           <div style={{
-            borderRadius: '14px', background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.3)',
+            borderRadius: '14px', background: 'rgba(211,47,47,0.12)', border: '1px solid rgba(211,47,47,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
             backdropFilter: 'blur(8px)', padding: '8px 14px', color: 'var(--accent)', fontWeight: '600', fontSize: '0.9rem'
           }}>
@@ -270,7 +270,7 @@ export default function Home() {
                       </p>
                     )}
                     {record.marca_modello_tachigrafo && (
-                      <p style={{ color: '#a78bfa', fontSize: '0.85rem', marginBottom: '2px' }}>⏱️ {record.marca_modello_tachigrafo}</p>
+                      <p style={{ color: '#e57373', fontSize: '0.85rem', marginBottom: '2px' }}>⏱️ {record.marca_modello_tachigrafo}</p>
                     )}
                     {record.cliente && (
                       <p style={{ color: 'var(--accent)', fontSize: '0.85rem', fontWeight: '500', marginBottom: '2px' }}>🏢 {record.cliente}</p>
@@ -285,7 +285,7 @@ export default function Home() {
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
                         onClick={() => setEditingRecord(record)}
-                        style={{ background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: '10px', padding: '6px 10px', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--accent)' }}
+                        style={{ background: 'rgba(211,47,47,0.15)', border: '1px solid rgba(211,47,47,0.3)', borderRadius: '10px', padding: '6px 10px', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--accent)' }}
                         title="Modifica"
                       >✏️</button>
                       <button

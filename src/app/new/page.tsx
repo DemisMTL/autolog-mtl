@@ -244,7 +244,7 @@ export default function NewRecord() {
                     <div>
                         <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--accent)', marginBottom: '8px' }}>🏢 Cliente / Azienda</label>
                         {debugInfo?.cliente_bloccato && (
-                            <div style={{ marginBottom: '12px', padding: '12px', background: 'rgba(56,189,248,0.1)', borderLeft: '4px solid var(--accent)', borderRadius: '0 8px 8px 0', fontSize: '0.9rem', color: 'white' }}>
+                            <div style={{ marginBottom: '12px', padding: '12px', background: 'rgba(211,47,47,0.1)', borderLeft: '4px solid var(--accent)', borderRadius: '0 8px 8px 0', fontSize: '0.9rem', color: 'white' }}>
                                 📍 <strong>Cliente Confermato in Automatico</strong><br />
                                 <span style={{ color: 'var(--text-secondary)' }}>Dall'ultima registrazione (&lt; 200m di distanza).</span>
                             </div>
@@ -254,7 +254,7 @@ export default function NewRecord() {
                             placeholder="Es. CABLOG, FERCAM..."
                             value={reviewData.cliente || ""}
                             onChange={e => setReviewData({ ...reviewData, cliente: e.target.value })}
-                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(56,189,248,0.5)', color: 'white', fontSize: '1.1rem', fontWeight: '500' }}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(211,47,47,0.5)', color: 'white', fontSize: '1.1rem', fontWeight: '500' }}
                         />
                         {debugInfo && (
                             <div style={{ marginTop: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -270,7 +270,7 @@ export default function NewRecord() {
                                     <button
                                         key={idx}
                                         onClick={() => setReviewData({ ...reviewData, cliente: company })}
-                                        style={{ background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', color: 'var(--accent)', padding: '6px 12px', borderRadius: '16px', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                        style={{ background: 'rgba(211,47,47,0.15)', border: '1px solid rgba(211,47,47,0.3)', color: 'var(--accent)', padding: '6px 12px', borderRadius: '16px', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                     >
                                         + {company}
                                     </button>
@@ -333,35 +333,35 @@ export default function NewRecord() {
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', color: '#a78bfa', marginBottom: '8px' }}>🔢 N. Telaio</label>
+                        <label style={{ display: 'block', fontSize: '0.9rem', color: '#e57373', marginBottom: '8px' }}>🔢 N. Telaio</label>
                         <input
                             type="text"
                             placeholder="Es. WDF9634031B984316"
                             value={reviewData.telaio || ""}
                             onChange={e => setReviewData({ ...reviewData, telaio: e.target.value.replace(/\s+/g, '').toUpperCase() })}
-                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(167,139,250,0.4)', color: 'white', fontSize: '1rem', letterSpacing: '0.08em', fontFamily: 'monospace' }}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(229,115,115,0.4)', color: 'white', fontSize: '1rem', letterSpacing: '0.08em', fontFamily: 'monospace' }}
                         />
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', color: '#a78bfa', marginBottom: '8px' }}>🔌 Seriale Centralina</label>
+                        <label style={{ display: 'block', fontSize: '0.9rem', color: '#e57373', marginBottom: '8px' }}>🔌 Seriale Centralina</label>
                         <input
                             type="text"
                             placeholder="Es. FMC640-23Q2-00032"
                             value={reviewData.seriale_centralina || ""}
                             onChange={e => setReviewData({ ...reviewData, seriale_centralina: e.target.value })}
-                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(167,139,250,0.4)', color: 'white', fontSize: '1rem', letterSpacing: '0.05em', fontFamily: 'monospace' }}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(229,115,115,0.4)', color: 'white', fontSize: '1rem', letterSpacing: '0.05em', fontFamily: 'monospace' }}
                         />
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', color: '#a78bfa', marginBottom: '8px' }}>⏱️ Marca/Versione Tachigrafo</label>
+                        <label style={{ display: 'block', fontSize: '0.9rem', color: '#e57373', marginBottom: '8px' }}>⏱️ Marca/Versione Tachigrafo</label>
                         <input
                             type="text"
                             placeholder="Es. VDO V2022 o Stoneridge SE5000"
                             value={reviewData.marca_modello_tachigrafo || ""}
                             onChange={e => setReviewData({ ...reviewData, marca_modello_tachigrafo: e.target.value })}
-                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(167,139,250,0.4)', color: 'white', fontSize: '1.1rem' }}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(229,115,115,0.4)', color: 'white', fontSize: '1.1rem' }}
                         />
                     </div>
 
@@ -457,8 +457,8 @@ export default function NewRecord() {
                             <span style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                 padding: '14px', borderRadius: '16px',
-                                background: photos.length >= 5 ? 'rgba(255,255,255,0.03)' : 'linear-gradient(135deg, rgba(14,165,233,0.25), rgba(59,130,246,0.2))',
-                                border: '1px solid rgba(56,189,248,0.3)',
+                                background: photos.length >= 5 ? 'rgba(255,255,255,0.03)' : 'linear-gradient(135deg, rgba(211,47,47,0.25), rgba(183,28,28,0.2))',
+                                border: '1px solid rgba(211,47,47,0.3)',
                                 color: photos.length >= 5 ? 'var(--text-secondary)' : 'var(--accent)', fontWeight: '600', cursor: photos.length >= 5 ? 'not-allowed' : 'pointer',
                                 fontSize: '1rem', userSelect: 'none'
                             }}>
