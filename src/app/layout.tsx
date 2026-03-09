@@ -8,13 +8,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AutoLog | Appunti Lavorazioni",
+  title: "Appunti Lavorazioni | MecTronicLab",
   description: "WebApp per la registrazione e catalogazione delle lavorazioni sui veicoli",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "AutoLog",
+    title: "MecTronicLab",
   },
 };
 

@@ -207,7 +207,7 @@ export default function Home() {
 
       <header className="header">
         <div>
-          <h1>AutoLog</h1>
+          <img src="/logo.jpg" alt="MecTronicLab Logo" style={{ height: '55px', objectFit: 'contain', background: 'rgba(255,255,255,0.95)', padding: '6px 16px', borderRadius: '14px' }} />
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '4px' }}>Registro interventi meccanici</p>
         </div>
         <Link href="/report" style={{ textDecoration: 'none' }}>
