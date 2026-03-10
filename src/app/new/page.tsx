@@ -201,6 +201,7 @@ export default function NewRecord() {
             cliente: reviewData?.cliente || null,
             anno_immatricolazione: reviewData?.anno_immatricolazione || null,
             marca_modello_tachigrafo: reviewData?.marca_modello_tachigrafo || null,
+            fornitore_servizio: reviewData?.fornitore_servizio || null,
         };
 
         // 1. Salvataggio locale
@@ -363,6 +364,23 @@ export default function NewRecord() {
                             onChange={e => setReviewData({ ...reviewData, marca_modello_tachigrafo: e.target.value })}
                             style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(229,115,115,0.4)', color: 'white', fontSize: '1.1rem' }}
                         />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.9rem', color: '#64b5f6', marginBottom: '8px' }}>📡 Fornitore Servizio</label>
+                        <select
+                            value={reviewData.fornitore_servizio || ""}
+                            onChange={e => setReviewData({ ...reviewData, fornitore_servizio: e.target.value })}
+                            style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(100,181,246,0.4)', color: 'white', fontSize: '1rem', appearance: 'auto' }}
+                        >
+                            <option value="">-- Seleziona o Nessuno --</option>
+                            <option value="GEOTAB">GEOTAB</option>
+                            <option value="W.A.Y.">W.A.Y.</option>
+                            <option value="WEBFLEET">WEBFLEET</option>
+                            <option value="FLOTTAWEB">FLOTTAWEB</option>
+                            <option value="GOLIA">GOLIA</option>
+                            <option value="ALTRO">ALTRO</option>
+                        </select>
                     </div>
 
                     <div>

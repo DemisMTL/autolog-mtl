@@ -19,6 +19,7 @@ interface InterventRecord {
   marca_veicolo?: string | null;
   anno_immatricolazione?: string | null;
   marca_modello_tachigrafo?: string | null;
+  fornitore_servizio?: string | null;
 }
 
 const VEHICLE_ICONS: { [key: string]: string } = {
@@ -63,6 +64,7 @@ function EditModal({ record, onSave, onClose }: {
     telaio: record.telaio || '',
     seriale_centralina: record.seriale_centralina || '',
     marca_modello_tachigrafo: record.marca_modello_tachigrafo || '',
+    fornitore_servizio: record.fornitore_servizio || '',
     lavorazione_eseguita: record.lavorazione_eseguita || '',
     note: record.note || '',
   });
@@ -104,6 +106,7 @@ function EditModal({ record, onSave, onClose }: {
             { label: 'Tipo Veicolo', key: 'tipo_veicolo' },
             { label: 'Numero Veicolo Aziendale', key: 'numero_veicolo' },
             { label: '⏱️ Marca/Versione Tachigrafo', key: 'marca_modello_tachigrafo' },
+            { label: '📡 Fornitore Servizio', key: 'fornitore_servizio' },
             { label: '🔢 N. Telaio', key: 'telaio' },
             { label: '🔌 Seriale Centralina', key: 'seriale_centralina' },
           ].map(({ label, key }) => (
@@ -286,8 +289,11 @@ export default function Home() {
                         {record.marca_veicolo} {record.anno_immatricolazione ? `(${record.anno_immatricolazione})` : ''}
                       </p>
                     )}
-                    {record.marca_modello_tachigrafo && (
-                      <p style={{ color: '#e57373', fontSize: '0.85rem', marginBottom: '2px' }}>⏱️ {record.marca_modello_tachigrafo}</p>
+                    {(record.marca_modello_tachigrafo || record.fornitore_servizio) && (
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '2px' }}>
+                        {record.marca_modello_tachigrafo && <span className="tag" style={{ color: '#e57373', fontSize: '0.85rem' }} title="Info Tachigrafo">⏱️ {record.marca_modello_tachigrafo}</span>}
+                        {record.fornitore_servizio && <span className="tag" style={{ color: '#81c784', fontSize: '0.85rem' }} title="Fornitore Servizio">📡 {record.fornitore_servizio}</span>}
+                      </div>
                     )}
                     {record.cliente && (
                       <p style={{ color: 'var(--accent)', fontSize: '0.85rem', fontWeight: '500', marginBottom: '2px' }}>🏢 {record.cliente}</p>

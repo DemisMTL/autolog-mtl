@@ -19,6 +19,7 @@ interface SheetRecord {
     marca_veicolo?: string | null;
     anno_immatricolazione?: string | null;
     marca_modello_tachigrafo?: string | null;
+    fornitore_servizio?: string | null;
 }
 
 interface LocationCluster {
@@ -145,14 +146,15 @@ async function generatePDF(clusters: LocationCluster[], dateLabel: string, clien
             r.cliente || '—',
             `${r.marca_veicolo || ''} ${r.anno_immatricolazione ? `(${r.anno_immatricolazione})` : ''}`.trim() || '—',
             r.marca_modello_tachigrafo || '—',
-            `${r.telaio || '—'}\n${r.seriale_centralina || '—'}`,
+            r.fornitore_servizio || '—',
+            `${r.telaio || '—'} / ${r.seriale_centralina || '—'}`,
             r.tipo_veicolo || '—',
             r.lavorazione_eseguita || r.note || '—',
         ]);
 
         autoTable(doc, {
             startY: y,
-            head: [['Orario', 'Targa', 'Cliente', 'Marca (Anno)', 'Tachigrafo', 'Telaio / SN', 'V. Tipo', 'Lavorazione']],
+            head: [['Orario', 'Targa', 'Cliente', 'Marca (Anno)', 'Tachigrafo', 'Fornitore', 'Telaio / SN', 'V. Tipo', 'Lavorazione']],
             body: tableData,
             theme: 'striped',
             headStyles: { fillColor: [30, 41, 59], textColor: [248, 250, 252] },
@@ -160,12 +162,13 @@ async function generatePDF(clusters: LocationCluster[], dateLabel: string, clien
             columnStyles: {
                 0: { cellWidth: 15 },
                 1: { cellWidth: 20 },
-                2: { cellWidth: 25 },
-                3: { cellWidth: 25 },
-                4: { cellWidth: 25 },
-                5: { cellWidth: 40 },
-                6: { cellWidth: 15 },
-                7: { cellWidth: 'auto' },
+                2: { cellWidth: 20 },
+                3: { cellWidth: 20 },
+                4: { cellWidth: 20 },
+                5: { cellWidth: 20 },
+                6: { cellWidth: 35 },
+                7: { cellWidth: 15 },
+                8: { cellWidth: 'auto' },
             },
             margin: { left: 14, right: 14 },
         });
@@ -182,7 +185,7 @@ async function generatePDF(clusters: LocationCluster[], dateLabel: string, clien
 
 // ─── Generazione CSV ──────────────────────────────────────────────────────────
 function downloadCSV(clusters: LocationCluster[], clientFilter: string, dateLabel: string) {
-    const header = ['Data/Ora', 'Location', 'Cliente', 'Targa', 'Marca', 'Anno Imm.', 'Tachigrafo', 'Tipo Veicolo', 'Telaio', 'SN Centralina', 'Lavorazione', 'Note'];
+    const header = ['Data/Ora', 'Location', 'Cliente', 'Targa', 'Marca', 'Anno Imm.', 'Tachigrafo', 'Fornitore', 'Tipo Veicolo', 'Telaio', 'SN Centralina', 'Lavorazione', 'Note'];
     let csvRows = [header.join(';')];
 
     for (const c of clusters) {
@@ -197,6 +200,7 @@ function downloadCSV(clusters: LocationCluster[], clientFilter: string, dateLabe
                 `"${r.marca_veicolo || ''}"`,
                 `"${r.anno_immatricolazione || ''}"`,
                 `"${r.marca_modello_tachigrafo || ''}"`,
+                `"${r.fornitore_servizio || ''}"`,
                 `"${r.tipo_veicolo || ''}"`,
                 `"${r.telaio || ''}"`,
                 `"${r.seriale_centralina || ''}"`,
@@ -248,6 +252,7 @@ async function generateSinglePDF(record: SheetRecord, locationName: string) {
     if (record.numero_veicolo) addRow('Numero Flotta', record.numero_veicolo);
     addRow('Marca / Anno', `${record.marca_veicolo || ''} ${record.anno_immatricolazione ? `(${record.anno_immatricolazione})` : ''}`.trim());
     if (record.marca_modello_tachigrafo) addRow('Tachigrafo Info', record.marca_modello_tachigrafo);
+    if (record.fornitore_servizio) addRow('Fornitore', record.fornitore_servizio);
     addRow('Tipo Veicolo', record.tipo_veicolo || '');
     addRow('Telaio', record.telaio || '');
     addRow('S/N Apparato', record.seriale_centralina || '');
