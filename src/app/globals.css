@@ -169,6 +169,10 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: #2a2a2a;
+  /* Grigio chiaro per il dark mode */
+  border-radius: 12px;
+  padding: 6px;
 }
 
 .record-details {
