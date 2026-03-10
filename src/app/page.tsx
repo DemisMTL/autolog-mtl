@@ -262,7 +262,7 @@ export default function Home() {
               return (
                 <div key={record.id} className="record-card">
                   <div className="record-icon">
-                    <img style={{ width: '32px', height: '32px', objectFit: 'contain' }} src={getVehicleIcon(record.tipo_veicolo)} alt="Vehicle Icon" />
+                    <img style={{ width: '100%', height: '100%', objectFit: 'contain' }} src={getVehicleIcon(record.tipo_veicolo)} alt="Vehicle Icon" />
                   </div>
                   <div className="record-details" style={{ flex: 1 }}>
                     <h3 style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>

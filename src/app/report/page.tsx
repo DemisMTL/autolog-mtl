@@ -482,7 +482,7 @@ export default function ReportPage() {
                                                 borderBottom: rIdx < cluster.records.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                                                 alignItems: 'flex-start'
                                             }}>
-                                                <div style={{ width: '40px', height: '40px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <div style={{ width: '56px', height: '56px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                     <img style={{ width: '100%', height: '100%', objectFit: 'contain' }} src={getVehicleIcon(rec.tipo_veicolo)} alt="Veicolo" />
                                                 </div>
                                                 <div style={{ flex: 1 }}>
