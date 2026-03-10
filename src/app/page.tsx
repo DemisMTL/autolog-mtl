@@ -21,18 +21,21 @@ interface InterventRecord {
   marca_modello_tachigrafo?: string | null;
 }
 
-const VEHICLE_EMOJIS: { [key: string]: string } = {
-  berlina: '🚗', auto: '🚗', suv: '🚙', furgone: '🚐',
-  moto: '🏍', camion: '🚛', trattore: '🚜', default: '🚗'
+const VEHICLE_ICONS: { [key: string]: string } = {
+  rimorchio: '/icons/trailer.png', semi: '/icons/trailer.png',
+  pesante: '/icons/heavy-truck.png', camion: '/icons/heavy-truck.png', stradale: '/icons/heavy-truck.png', trattore: '/icons/heavy-truck.png',
+  furgone: '/icons/van.png', commerciale: '/icons/van.png',
+  terra: '/icons/earthmoving.png', escavatore: '/icons/earthmoving.png', ruspa: '/icons/earthmoving.png',
+  berlina: '/icons/car.png', auto: '/icons/car.png', suv: '/icons/car.png', default: '/icons/car.png'
 };
 
-function getVehicleEmoji(tipo: string | null): string {
-  if (!tipo) return '🚗';
+function getVehicleIcon(tipo: string | null): string {
+  if (!tipo) return '/icons/car.png';
   const lower = tipo.toLowerCase();
-  for (const [key, emoji] of Object.entries(VEHICLE_EMOJIS)) {
-    if (lower.includes(key)) return emoji;
+  for (const [key, iconPath] of Object.entries(VEHICLE_ICONS)) {
+    if (lower.includes(key)) return iconPath;
   }
-  return VEHICLE_EMOJIS.default;
+  return VEHICLE_ICONS.default;
 }
 
 function formatDate(timestamp: string): { day: string; time: string } {
@@ -258,7 +261,9 @@ export default function Home() {
               const { day, time } = formatDate(record.timestamp);
               return (
                 <div key={record.id} className="record-card">
-                  <div className="record-icon">{getVehicleEmoji(record.tipo_veicolo)}</div>
+                  <div className="record-icon">
+                    <img style={{ width: '32px', height: '32px', objectFit: 'contain' }} src={getVehicleIcon(record.tipo_veicolo)} alt="Vehicle Icon" />
+                  </div>
                   <div className="record-details" style={{ flex: 1 }}>
                     <h3 style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       {[record.targa, record.numero_veicolo ? `· #${record.numero_veicolo}` : null]

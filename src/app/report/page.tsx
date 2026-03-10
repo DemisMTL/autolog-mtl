@@ -27,6 +27,22 @@ interface LocationCluster {
     lng: number;
     records: SheetRecord[];
 }
+const VEHICLE_ICONS: { [key: string]: string } = {
+    rimorchio: '/icons/trailer.png', semi: '/icons/trailer.png',
+    pesante: '/icons/heavy-truck.png', camion: '/icons/heavy-truck.png', stradale: '/icons/heavy-truck.png', trattore: '/icons/heavy-truck.png',
+    furgone: '/icons/van.png', commerciale: '/icons/van.png',
+    terra: '/icons/earthmoving.png', escavatore: '/icons/earthmoving.png', ruspa: '/icons/earthmoving.png',
+    berlina: '/icons/car.png', auto: '/icons/car.png', suv: '/icons/car.png', default: '/icons/car.png'
+};
+
+function getVehicleIcon(tipo: string | null): string {
+    if (!tipo) return '/icons/car.png';
+    const lower = tipo.toLowerCase();
+    for (const [key, iconPath] of Object.entries(VEHICLE_ICONS)) {
+        if (lower.includes(key)) return iconPath;
+    }
+    return VEHICLE_ICONS.default;
+}
 
 // ─── Algoritmo Haversine (distanza in metri tra 2 coordinate GPS) ─────────────
 function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -466,7 +482,9 @@ export default function ReportPage() {
                                                 borderBottom: rIdx < cluster.records.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                                                 alignItems: 'flex-start'
                                             }}>
-                                                <span style={{ fontSize: '1.4rem', lineHeight: '1' }}>🚗</span>
+                                                <div style={{ width: '40px', height: '40px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <img style={{ width: '100%', height: '100%', objectFit: 'contain' }} src={getVehicleIcon(rec.tipo_veicolo)} alt="Veicolo" />
+                                                </div>
                                                 <div style={{ flex: 1 }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', flexWrap: 'wrap' }}>
                                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
