@@ -56,8 +56,12 @@ function EditModal({ record, onSave, onClose }: {
   const [form, setForm] = useState({
     cliente: record.cliente || '',
     targa: record.targa || '',
+    anno_immatricolazione: record.anno_immatricolazione || '',
+    marca_veicolo: record.marca_veicolo || '',
     tipo_veicolo: record.tipo_veicolo || '',
     numero_veicolo: record.numero_veicolo || '',
+    telaio: record.telaio || '',
+    seriale_centralina: record.seriale_centralina || '',
     marca_modello_tachigrafo: record.marca_modello_tachigrafo || '',
     lavorazione_eseguita: record.lavorazione_eseguita || '',
     note: record.note || '',
@@ -96,9 +100,12 @@ function EditModal({ record, onSave, onClose }: {
             { label: '🏢 Cliente / Azienda', key: 'cliente' },
             { label: 'Targa', key: 'targa' },
             { label: '📅 Anno Immatricolazione', key: 'anno_immatricolazione' },
+            { label: 'Marca Veicolo', key: 'marca_veicolo' },
             { label: 'Tipo Veicolo', key: 'tipo_veicolo' },
             { label: 'Numero Veicolo Aziendale', key: 'numero_veicolo' },
             { label: '⏱️ Marca/Versione Tachigrafo', key: 'marca_modello_tachigrafo' },
+            { label: '🔢 N. Telaio', key: 'telaio' },
+            { label: '🔌 Seriale Centralina', key: 'seriale_centralina' },
           ].map(({ label, key }) => (
             <div key={key}>
               <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{label}</label>

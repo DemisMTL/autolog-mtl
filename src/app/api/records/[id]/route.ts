@@ -6,7 +6,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     try {
         const { id } = await params;
         const body = await req.json();
-        const { targa, tipo_veicolo, numero_veicolo, lavorazione_eseguita, note } = body;
+        const {
+            targa, tipo_veicolo, numero_veicolo, lavorazione_eseguita, note,
+            cliente, telaio, seriale_centralina, marca_veicolo, anno_immatricolazione, marca_modello_tachigrafo
+        } = body;
 
         const sql = getDb();
         const result = await sql`
@@ -16,7 +19,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         tipo_veicolo = ${tipo_veicolo ?? null},
         numero_veicolo = ${numero_veicolo ?? null},
         lavorazione_eseguita = ${lavorazione_eseguita ?? null},
-        note = ${note ?? null}
+        note = ${note ?? null},
+        cliente = ${cliente ?? null},
+        telaio = ${telaio ?? null},
+        seriale_centralina = ${seriale_centralina ?? null},
+        marca_veicolo = ${marca_veicolo ?? null},
+        anno_immatricolazione = ${anno_immatricolazione ?? null},
+        marca_modello_tachigrafo = ${marca_modello_tachigrafo ?? null}
       WHERE id = ${parseInt(id)}
       RETURNING id
     `;
