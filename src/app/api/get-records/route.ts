@@ -8,9 +8,21 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const dateFilter = searchParams.get('date');
+    const startDateFilter = searchParams.get('startDate');
+    const endDateFilter = searchParams.get('endDate');
 
     let rows;
-    if (dateFilter) {
+    if (startDateFilter && endDateFilter) {
+      rows = await sql`
+        SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
+               lavorazione_eseguita, note, lat, lng,
+               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo
+        FROM records
+        WHERE DATE(timestamp AT TIME ZONE 'Europe/Rome') >= ${startDateFilter}
+          AND DATE(timestamp AT TIME ZONE 'Europe/Rome') <= ${endDateFilter}
+        ORDER BY timestamp ASC
+      `;
+    } else if (dateFilter) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,

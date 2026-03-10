@@ -181,7 +181,7 @@ async function generatePDF(clusters: LocationCluster[], dateLabel: string, clien
 }
 
 // ─── Generazione CSV ──────────────────────────────────────────────────────────
-function downloadCSV(clusters: LocationCluster[], clientFilter: string) {
+function downloadCSV(clusters: LocationCluster[], clientFilter: string, dateLabel: string) {
     const header = ['Data/Ora', 'Location', 'Cliente', 'Targa', 'Marca', 'Anno Imm.', 'Tachigrafo', 'Tipo Veicolo', 'Telaio', 'SN Centralina', 'Lavorazione', 'Note'];
     let csvRows = [header.join(';')];
 
@@ -211,7 +211,7 @@ function downloadCSV(clusters: LocationCluster[], clientFilter: string) {
     const csvUrl = URL.createObjectURL(csvData);
     const a = document.createElement('a');
     a.href = csvUrl;
-    a.download = `AutoLog_Export_${clientFilter !== 'Tutti' ? clientFilter.replace(/[^a-z0-9]/gi, '_') : 'Globale'}.csv`;
+    a.download = `AutoLog_Export_${clientFilter !== 'Tutti' ? clientFilter.replace(/[^a-z0-9]/gi, '_') : 'Globale'}_${dateLabel}.csv`;
     a.click();
 }
 
@@ -276,7 +276,8 @@ async function generateSinglePDF(record: SheetRecord, locationName: string) {
 // ─── Componente principale ────────────────────────────────────────────────────
 export default function ReportPage() {
     const today = new Date().toISOString().split('T')[0];
-    const [selectedDate, setSelectedDate] = useState(today);
+    const [startDate, setStartDate] = useState(today);
+    const [endDate, setEndDate] = useState(today);
     const [clusters, setClusters] = useState<LocationCluster[]>([]);
     const [clientFilter, setClientFilter] = useState('Tutti');
     const [isLoading, setIsLoading] = useState(false);
@@ -284,11 +285,11 @@ export default function ReportPage() {
     const [isGeneratingSingle, setIsGeneratingSingle] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const loadReport = useCallback(async (date: string) => {
+    const loadReport = useCallback(async (start: string, end: string) => {
         setIsLoading(true);
         setError(null);
         try {
-            const res = await fetch(`/api/get-records?date=${date}`);
+            const res = await fetch(`/api/get-records?startDate=${start}&endDate=${end}`);
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Errore caricamento');
 
@@ -311,14 +312,26 @@ export default function ReportPage() {
     }, []);
 
     useEffect(() => {
-        loadReport(selectedDate);
-    }, [selectedDate, loadReport]);
+        loadReport(startDate, endDate);
+    }, [startDate, endDate, loadReport]);
 
     const handleDownloadPDF = async () => {
         setIsGeneratingPDF(true);
-        const label = new Date(selectedDate + 'T12:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        let label = '';
+        if (startDate === endDate) {
+            label = new Date(startDate + 'T12:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        } else {
+            const startStr = new Date(startDate + 'T12:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const endStr = new Date(endDate + 'T12:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            label = `dal ${startStr} al ${endStr}`;
+        }
         await generatePDF(clusters, label, clientFilter);
         setIsGeneratingPDF(false);
+    };
+
+    const handleDownloadCSV = () => {
+        const dateLabel = startDate === endDate ? startDate : `${startDate}_to_${endDate}`;
+        downloadCSV(clusters, clientFilter, dateLabel);
     };
 
     const handleSinglePDF = async (rec: SheetRecord, loc: string) => {
@@ -358,11 +371,23 @@ export default function ReportPage() {
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span style={{ fontSize: '1.3rem' }}>📅</span>
+                            <span style={{ fontSize: '1.3rem', marginRight: '4px' }}>📅 Da:</span>
                             <input
                                 type="date"
-                                value={selectedDate}
-                                onChange={e => { setSelectedDate(e.target.value); setClientFilter('Tutti'); }}
+                                value={startDate}
+                                onChange={e => { setStartDate(e.target.value); setClientFilter('Tutti'); }}
+                                style={{
+                                    background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)',
+                                    color: 'var(--text-primary)', borderRadius: '12px', padding: '10px 14px',
+                                    fontSize: '1rem', fontFamily: 'inherit',
+                                }}
+                            />
+                            <span style={{ fontSize: '1.1rem', margin: '0 4px' }}>A:</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                min={startDate}
+                                onChange={e => { setEndDate(e.target.value); setClientFilter('Tutti'); }}
                                 style={{
                                     background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)',
                                     color: 'var(--text-primary)', borderRadius: '12px', padding: '10px 14px',
@@ -400,10 +425,10 @@ export default function ReportPage() {
                                 className="btn-primary"
                                 style={{ padding: '10px 20px', fontSize: '0.95rem', borderRadius: '14px', gap: '8px', flex: '1 1 auto', justifyContent: 'center' }}
                             >
-                                {isGeneratingPDF ? '⏳ Generando PDF...' : `📄 Scarica Report ${clientFilter !== 'Tutti' ? 'Cliente' : 'Giornaliero'}`}
+                                {isGeneratingPDF ? '⏳ Generando PDF...' : `📄 Scarica Report ${clientFilter !== 'Tutti' ? 'Cliente' : (startDate === endDate ? 'Giornaliero' : 'Periodico')}`}
                             </button>
                             <button
-                                onClick={() => downloadCSV(clusters, clientFilter)}
+                                onClick={handleDownloadCSV}
                                 style={{ padding: '10px 20px', fontSize: '0.95rem', borderRadius: '14px', gap: '8px', cursor: 'pointer', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80', fontWeight: 'bold', display: 'flex', alignItems: 'center', flex: '1 1 auto', justifyContent: 'center' }}
                             >
                                 📊 Scarica CSV (Excel)
