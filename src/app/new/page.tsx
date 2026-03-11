@@ -379,6 +379,7 @@ export default function NewRecord() {
                             <option value="WEBFLEET">WEBFLEET</option>
                             <option value="FLOTTAWEB">FLOTTAWEB</option>
                             <option value="GOLIA">GOLIA</option>
+                            <option value="MULTIPROTEXION">MULTIPROTEXION</option>
                             <option value="ALTRO">ALTRO</option>
                         </select>
                     </div>
