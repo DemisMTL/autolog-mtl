@@ -202,6 +202,7 @@ export default function NewRecord() {
             anno_immatricolazione: reviewData?.anno_immatricolazione || null,
             marca_modello_tachigrafo: reviewData?.marca_modello_tachigrafo || null,
             fornitore_servizio: reviewData?.fornitore_servizio || null,
+            tecnico: typeof window !== 'undefined' ? localStorage.getItem('autolog_tecnico') : null,
         };
 
         // 1. Salvataggio locale

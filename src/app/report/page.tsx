@@ -20,6 +20,7 @@ interface SheetRecord {
     anno_immatricolazione?: string | null;
     marca_modello_tachigrafo?: string | null;
     fornitore_servizio?: string | null;
+    tecnico?: string | null;
 }
 
 interface LocationCluster {
@@ -149,12 +150,13 @@ async function generatePDF(clusters: LocationCluster[], dateLabel: string, clien
             r.fornitore_servizio || '—',
             `${r.telaio || '—'} / ${r.seriale_centralina || '—'}`,
             r.tipo_veicolo || '—',
+            r.tecnico || '—',
             r.lavorazione_eseguita || r.note || '—',
         ]);
 
         autoTable(doc, {
             startY: y,
-            head: [['Orario', 'Targa', 'Cliente', 'Marca (Anno)', 'Tachigrafo', 'Fornitore', 'Telaio / SN', 'V. Tipo', 'Lavorazione']],
+            head: [['Orario', 'Targa', 'Cliente', 'Marca (Anno)', 'Tachigrafo', 'Forn/Tec', 'Telaio / SN', 'V. Tipo', 'Lavorazione']],
             body: tableData,
             theme: 'striped',
             headStyles: { fillColor: [30, 41, 59], textColor: [248, 250, 252] },
@@ -185,7 +187,7 @@ async function generatePDF(clusters: LocationCluster[], dateLabel: string, clien
 
 // ─── Generazione CSV ──────────────────────────────────────────────────────────
 function downloadCSV(clusters: LocationCluster[], clientFilter: string, dateLabel: string) {
-    const header = ['Data/Ora', 'Location', 'Cliente', 'Targa', 'Marca', 'Anno Imm.', 'Tachigrafo', 'Fornitore', 'Tipo Veicolo', 'Telaio', 'SN Centralina', 'Lavorazione', 'Note'];
+    const header = ['Data/Ora', 'Location', 'Cliente', 'Targa', 'Marca', 'Anno Imm.', 'Tachigrafo', 'Fornitore', 'Tecnico', 'Tipo Veicolo', 'Telaio', 'SN Centralina', 'Lavorazione', 'Note'];
     let csvRows = [header.join(';')];
 
     for (const c of clusters) {
@@ -201,6 +203,7 @@ function downloadCSV(clusters: LocationCluster[], clientFilter: string, dateLabe
                 `"${r.anno_immatricolazione || ''}"`,
                 `"${r.marca_modello_tachigrafo || ''}"`,
                 `"${r.fornitore_servizio || ''}"`,
+                `"${r.tecnico || ''}"`,
                 `"${r.tipo_veicolo || ''}"`,
                 `"${r.telaio || ''}"`,
                 `"${r.seriale_centralina || ''}"`,
@@ -253,6 +256,7 @@ async function generateSinglePDF(record: SheetRecord, locationName: string) {
     addRow('Marca / Anno', `${record.marca_veicolo || ''} ${record.anno_immatricolazione ? `(${record.anno_immatricolazione})` : ''}`.trim());
     if (record.marca_modello_tachigrafo) addRow('Tachigrafo Info', record.marca_modello_tachigrafo);
     if (record.fornitore_servizio) addRow('Fornitore', record.fornitore_servizio);
+    if (record.tecnico) addRow('Eseguito da', record.tecnico);
     addRow('Tipo Veicolo', record.tipo_veicolo || '');
     addRow('Telaio', record.telaio || '');
     addRow('S/N Apparato', record.seriale_centralina || '');

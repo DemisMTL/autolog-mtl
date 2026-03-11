@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
-               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio
+               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico
         FROM records
         WHERE DATE(timestamp AT TIME ZONE 'Europe/Rome') >= ${startDateFilter}
           AND DATE(timestamp AT TIME ZONE 'Europe/Rome') <= ${endDateFilter}
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
-               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio
+               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico
         FROM records
         WHERE DATE(timestamp AT TIME ZONE 'Europe/Rome') = ${dateFilter}
         ORDER BY timestamp ASC
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
-               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio
+               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico
         FROM records
         ORDER BY timestamp DESC
         LIMIT 100
@@ -58,7 +58,8 @@ export async function GET(req: NextRequest) {
       marca_veicolo: r.marca_veicolo,
       anno_immatricolazione: r.anno_immatricolazione,
       marca_modello_tachigrafo: r.marca_modello_tachigrafo,
-      fornitore_servizio: r.fornitore_servizio
+      fornitore_servizio: r.fornitore_servizio,
+      tecnico: r.tecnico
     }));
 
     return NextResponse.json({ records });
