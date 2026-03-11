@@ -28,6 +28,7 @@ const VEHICLE_ICONS: { [key: string]: string } = {
   pesante: '/icons/heavy-truck.png', camion: '/icons/heavy-truck.png', stradale: '/icons/heavy-truck.png', trattore: '/icons/heavy-truck.png',
   furgone: '/icons/van.png', commerciale: '/icons/van.png',
   terra: '/icons/earthmoving.png', escavatore: '/icons/earthmoving.png', ruspa: '/icons/earthmoving.png',
+  agricola: '/icons/agri.png', agricolo: '/icons/agri.png',
   berlina: '/icons/car.png', auto: '/icons/car.png', suv: '/icons/car.png', default: '/icons/car.png'
 };
 
