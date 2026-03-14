@@ -41,4 +41,5 @@ export async function ensureTable() {
   await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS marca_modello_tachigrafo TEXT`;
   await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS fornitore_servizio TEXT`;
   await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS tecnico TEXT`;
+  await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS is_matched BOOLEAN DEFAULT FALSE`;
 }

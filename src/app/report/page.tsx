@@ -21,6 +21,7 @@ interface SheetRecord {
     marca_modello_tachigrafo?: string | null;
     fornitore_servizio?: string | null;
     tecnico?: string | null;
+    is_matched?: boolean;
 }
 
 interface LocationCluster {
@@ -525,6 +526,7 @@ export default function ReportPage() {
                                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                             <span style={{ fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
                                                                 {rec.targa || rec.tipo_veicolo || 'Veicolo'}
+                                                                {rec.is_matched && <span style={{ marginLeft: '6px', color: '#4ade80', fontSize: '1rem' }} title="Matchato con Ticket">✅</span>}
                                                             </span>
                                                             {rec.cliente && (
                                                                 <span style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: '500', marginTop: '2px' }}>

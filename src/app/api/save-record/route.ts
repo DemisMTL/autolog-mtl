@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     await ensureTable();
     const sql = getDb();
 
-    await sql`
+    const result = await sql`
       INSERT INTO records (
         timestamp, targa, tipo_veicolo, numero_veicolo,
         lavorazione_eseguita, note, lat, lng,
@@ -40,7 +40,33 @@ export async function POST(req: NextRequest) {
       ) RETURNING id
     `;
 
-    return NextResponse.json({ success: true });
+    // ─── Sync with App-Ticket (automatic closure) ───
+    if (seriale_centralina || targa) {
+      try {
+        const ticketAppUrl = process.env.TICKET_APP_URL || 'http://localhost:3001';
+        const syncPayload = [seriale_centralina, targa].filter(Boolean).join(' ');
+        
+        console.log(`[BACKEND-SYNC] Notifying App-Ticket at ${ticketAppUrl}/api/tickets/sync for: ${syncPayload}`);
+        
+        const syncRes = await fetch(`${ticketAppUrl}/api/tickets/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ serialNumber: syncPayload })
+        });
+        
+        if (!syncRes.ok) {
+          const errData = await syncRes.json();
+          console.error('[BACKEND-SYNC] Sync failed:', errData);
+        } else {
+          const syncData = await syncRes.json();
+          console.log('[BACKEND-SYNC] Sync success:', syncData);
+        }
+      } catch (syncErr: any) {
+        console.error('[BACKEND-SYNC] Error calling App-Ticket sync API:', syncErr.message);
+      }
+    }
+
+    return NextResponse.json({ success: true, id: result[0]?.id });
   } catch (error: any) {
     console.error('Errore salvataggio record:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });

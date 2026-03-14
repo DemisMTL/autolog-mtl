@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import TicketPanel from './components/TicketPanel';
 
 interface InterventRecord {
   id: number;
@@ -21,6 +22,7 @@ interface InterventRecord {
   marca_modello_tachigrafo?: string | null;
   fornitore_servizio?: string | null;
   tecnico?: string | null;
+  is_matched?: boolean;
 }
 
 const VEHICLE_ICONS: { [key: string]: string } = {
@@ -269,6 +271,8 @@ export default function Home() {
         </div>
       </section>
 
+      <TicketPanel />
+
       <section style={{ marginTop: '20px', marginBottom: '100px' }}>
         <h2 style={{ fontSize: '1.25rem', marginBottom: '20px' }}>Ultime Registrazioni</h2>
 
@@ -297,6 +301,7 @@ export default function Home() {
                     <h3 style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       {[record.targa, record.numero_veicolo ? `· #${record.numero_veicolo}` : null]
                         .filter(Boolean).join(' ') || record.tipo_veicolo || 'Veicolo'}
+                      {record.is_matched && <span style={{ marginLeft: '8px', color: '#4ade80', fontSize: '1.1rem' }} title="Matchato con Ticket">✅</span>}
                     </h3>
                     {(record.marca_veicolo || record.anno_immatricolazione) && (
                       <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>
