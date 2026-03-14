@@ -205,7 +205,7 @@ export default function TicketPanel() {
                                                 onClick={() => updateStatus(ticket.id, 'In corso')}
                                                 disabled={isUpdating}
                                                 style={{
-                                                    flex: 1, padding: '12px', borderRadius: '12px', border: 'none',
+                                                    flex: 1, padding: '12px', borderRadius: '12px',
                                                     background: 'rgba(251,191,36,0.12)', color: '#fbbf24',
                                                     fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem',
                                                     border: '1px solid rgba(251,191,36,0.3)', transition: 'all 0.2s'
@@ -218,7 +218,7 @@ export default function TicketPanel() {
                                                 onClick={() => updateStatus(ticket.id, 'Completato')}
                                                 disabled={isUpdating}
                                                 style={{
-                                                    flex: 1, padding: '12px', borderRadius: '12px', border: 'none',
+                                                    flex: 1, padding: '12px', borderRadius: '12px',
                                                     background: 'rgba(52,211,153,0.12)', color: '#34d399',
                                                     fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem',
                                                     border: '1px solid rgba(52,211,153,0.3)', transition: 'all 0.2s'
