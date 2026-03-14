@@ -3,10 +3,10 @@ import { getDb } from '@/lib/db';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const sql = getDb();
 
     await sql`
