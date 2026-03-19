@@ -375,44 +375,66 @@ export default function Home() {
                     )}
                     <p>{record.lavorazione_eseguita || record.note || '—'}</p>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
                     <div className="record-meta" style={{ textAlign: 'right' }}>
                       <span>{day}</span><br />
                       <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{time}</span>
-                      {record.is_matched && (
-                        <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                          <span style={{ fontSize: '1.2rem' }} title="Matchato con Ticket">✅</span>
-                          {record.matched_ticket && (
-                           <button
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               setShowTicketCommessa(record.matched_ticket!);
-                             }}
-                             style={{
-                               background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
-                               borderRadius: '8px', padding: '4px 8px', cursor: 'pointer',
-                               fontSize: '0.7rem', color: '#60a5fa', textDecoration: 'none',
-                               display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap'
-                             }}
-                              title={`Ticket: ${record.matched_ticket}`}
-                            >
-                              🎟️ Vedi Ticket
-                            </button>
-                          )}
-                        </div>
-                      )}
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        onClick={() => setEditingRecord(record)}
-                        style={{ background: 'rgba(211,47,47,0.15)', border: '1px solid rgba(211,47,47,0.3)', borderRadius: '10px', padding: '6px 10px', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--accent)' }}
-                        title="Modifica"
-                      >✏️</button>
-                      <button
-                        onClick={() => handleDelete(record.id)}
-                        style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '10px', padding: '6px 10px', cursor: 'pointer', fontSize: '0.85rem', color: '#ef4444' }}
-                        title="Elimina"
-                      >🗑</button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {/* Stato Match */}
+                      {record.is_matched && (
+                        <span style={{ fontSize: '1.2rem', filter: 'drop-shadow(0 0 5px rgba(16,185,129,0.3))' }} title="Matchato con Ticket">✅</span>
+                      )}
+
+                      {/* Gruppo Azioni */}
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        background: 'rgba(255,255,255,0.03)', 
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '12px',
+                        padding: '3px'
+                      }}>
+                        {record.matched_ticket && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowTicketCommessa(record.matched_ticket!);
+                            }}
+                            style={{
+                              background: 'rgba(59,130,246,0.15)', border: 'none',
+                              borderRadius: '9px', padding: '6px 12px', cursor: 'pointer',
+                              fontSize: '0.75rem', color: '#60a5fa', fontWeight: 'bold',
+                              display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap',
+                              transition: 'all 0.2s', margin: '0 2px'
+                            }}
+                          >
+                            <span>🎟️</span> Vedi Ticket
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditingRecord(record); }}
+                          style={{ 
+                            background: 'transparent', border: 'none', borderRadius: '9px', 
+                            padding: '6px 10px', cursor: 'pointer', fontSize: '1rem',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.2s'
+                          }}
+                          title="Modifica"
+                        >✏️</button>
+                        <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)', margin: '0 2px' }}></div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDelete(record.id); }}
+                          style={{ 
+                            background: 'transparent', border: 'none', borderRadius: '9px', 
+                            padding: '6px 10px', cursor: 'pointer', fontSize: '1rem',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.2s'
+                          }}
+                          title="Elimina"
+                        >🗑</button>
+                      </div>
                     </div>
                   </div>
                 </div>
