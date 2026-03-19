@@ -23,6 +23,7 @@ interface InterventRecord {
   fornitore_servizio?: string | null;
   tecnico?: string | null;
   is_matched?: boolean;
+  matched_ticket?: string | null;
 }
 
 const VEHICLE_ICONS: { [key: string]: string } = {
@@ -301,7 +302,6 @@ export default function Home() {
                     <h3 style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       {[record.targa, record.numero_veicolo ? `· #${record.numero_veicolo}` : null]
                         .filter(Boolean).join(' ') || record.tipo_veicolo || 'Veicolo'}
-                      {record.is_matched && <span style={{ marginLeft: '8px', color: '#4ade80', fontSize: '1.1rem' }} title="Matchato con Ticket">✅</span>}
                     </h3>
                     {(record.marca_veicolo || record.anno_immatricolazione) && (
                       <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '2px' }}>
@@ -324,6 +324,27 @@ export default function Home() {
                     <div className="record-meta" style={{ textAlign: 'right' }}>
                       <span>{day}</span><br />
                       <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{time}</span>
+                      {record.is_matched && (
+                        <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                          <span style={{ fontSize: '1.2rem' }} title="Matchato con Ticket">✅</span>
+                          {record.matched_ticket && (
+                            <a
+                              href={`${process.env.NEXT_PUBLIC_TICKET_APP_URL || ''}/view`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
+                                borderRadius: '8px', padding: '4px 8px', cursor: 'pointer',
+                                fontSize: '0.7rem', color: '#60a5fa', textDecoration: 'none',
+                                display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap'
+                              }}
+                              title={`Ticket: ${record.matched_ticket}`}
+                            >
+                              🎟️ Vedi Ticket
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button

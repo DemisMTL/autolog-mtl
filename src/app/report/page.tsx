@@ -526,7 +526,6 @@ export default function ReportPage() {
                                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                             <span style={{ fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
                                                                 {rec.targa || rec.tipo_veicolo || 'Veicolo'}
-                                                                {rec.is_matched && <span style={{ marginLeft: '6px', color: '#4ade80', fontSize: '1rem' }} title="Matchato con Ticket">✅</span>}
                                                             </span>
                                                             {rec.cliente && (
                                                                 <span style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: '500', marginTop: '2px' }}>
@@ -543,6 +542,7 @@ export default function ReportPage() {
                                                             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                                                 {new Date(rec.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
                                                             </span>
+                                                            {rec.is_matched && <div style={{ fontSize: '1.2rem', marginBottom: '2px' }} title="Matchato con Ticket">✅</div>}
                                                             <button
                                                                 onClick={() => handleSinglePDF(rec, cluster.locationName)}
                                                                 disabled={isGeneratingSingle}

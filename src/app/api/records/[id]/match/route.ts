@@ -9,9 +9,17 @@ export async function POST(
     const { id } = await params;
     const sql = getDb();
 
+    // Accept optional commessa from request body
+    let commessa: string | null = null;
+    try {
+      const body = await req.json();
+      commessa = body.commessa || null;
+    } catch { /* no body or invalid JSON — that's fine */ }
+
     await sql`
       UPDATE records 
-      SET is_matched = TRUE 
+      SET is_matched = TRUE,
+          matched_ticket = ${commessa}
       WHERE id = ${id}
     `;
 
