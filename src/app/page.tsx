@@ -53,6 +53,39 @@ function formatDate(timestamp: string): { day: string; time: string } {
   return { day: date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }), time: date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) };
 }
 
+// ─── Modale Ticket (Iframe) ──────────────────────────────────────────────────
+function TicketPopup({ commessa, onClose }: { commessa: string, onClose: () => void }) {
+  const ticketUrl = `${process.env.NEXT_PUBLIC_TICKET_APP_URL || ''}/view?commessa=${commessa}&embed=true`;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="relative w-full max-w-4xl h-[85vh] bg-neutral-900 rounded-3xl overflow-hidden border border-white/10 shadow-2xl flex flex-col">
+        {/* Header con chiusura */}
+        <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <span>🎟️</span> Dettaglio Ticket #{commessa}
+          </h3>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-full text-white/60 hover:text-white transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+        
+        {/* Iframe */}
+        <div className="flex-1 bg-neutral-900 relative">
+          <iframe 
+            src={ticketUrl}
+            className="w-full h-full border-none"
+            title={`Ticket ${commessa}`}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Modale di modifica ───────────────────────────────────────────────────────
 function EditModal({ record, onSave, onClose }: {
   record: InterventRecord;
@@ -162,6 +195,8 @@ export default function Home() {
   const [monthCount, setMonthCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState<InterventRecord | null>(null);
+
+  const [showTicketCommessa, setShowTicketCommessa] = useState<string | null>(null);
 
   const loadRecords = async () => {
     setIsLoading(true);
@@ -328,10 +363,8 @@ export default function Home() {
                         <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                           <span style={{ fontSize: '1.2rem' }} title="Matchato con Ticket">✅</span>
                           {record.matched_ticket && (
-                            <a
-                              href={`${process.env.NEXT_PUBLIC_TICKET_APP_URL || ''}/view?commessa=${record.matched_ticket}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              onClick={() => setShowTicketCommessa(record.matched_ticket!)}
                               style={{
                                 background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
                                 borderRadius: '8px', padding: '4px 8px', cursor: 'pointer',
@@ -341,7 +374,7 @@ export default function Home() {
                               title={`Ticket: ${record.matched_ticket}`}
                             >
                               🎟️ Vedi Ticket
-                            </a>
+                            </button>
                           )}
                         </div>
                       )}
@@ -374,6 +407,13 @@ export default function Home() {
           </button>
         </Link>
       </div>
+      {/* Modale Ticket Popup */}
+      {showTicketCommessa && (
+        <TicketPopup 
+          commessa={showTicketCommessa} 
+          onClose={() => setShowTicketCommessa(null)} 
+        />
+      )}
     </main>
   );
 }
