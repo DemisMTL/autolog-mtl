@@ -329,7 +329,7 @@ export default function Home() {
                           <span style={{ fontSize: '1.2rem' }} title="Matchato con Ticket">✅</span>
                           {record.matched_ticket && (
                             <a
-                              href={`${process.env.NEXT_PUBLIC_TICKET_APP_URL || ''}/view`}
+                              href={`${process.env.NEXT_PUBLIC_TICKET_APP_URL || ''}/view?commessa=${record.matched_ticket}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{
