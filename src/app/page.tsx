@@ -55,29 +55,49 @@ function formatDate(timestamp: string): { day: string; time: string } {
 
 // ─── Modale Ticket (Iframe) ──────────────────────────────────────────────────
 function TicketPopup({ commessa, onClose }: { commessa: string, onClose: () => void }) {
-  const ticketUrl = `${process.env.NEXT_PUBLIC_TICKET_APP_URL || ''}/view?commessa=${commessa}&embed=true`;
+  let baseUrl = process.env.NEXT_PUBLIC_TICKET_APP_URL || '';
+  if (baseUrl && !baseUrl.startsWith('http')) baseUrl = `https://${baseUrl}`;
+  const ticketUrl = `${baseUrl}/view?commessa=${commessa}&embed=true`;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="relative w-full max-w-4xl h-[85vh] bg-neutral-900 rounded-3xl overflow-hidden border border-white/10 shadow-2xl flex flex-col">
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 2000, 
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '16px', backgroundColor: 'rgba(0,0,0,0.8)',
+      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)'
+    }} onClick={onClose}>
+      <div style={{
+        position: 'relative', width: '100%', maxWidth: '900px', height: '85vh',
+        backgroundColor: '#121212', borderRadius: '24px', overflow: 'hidden',
+        border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+        display: 'flex', flexDirection: 'column'
+      }} onClick={e => e.stopPropagation()}>
         {/* Header con chiusura */}
-        <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
-          <h3 className="text-white font-semibold flex items-center gap-2">
-            <span>🎟️</span> Dettaglio Ticket #{commessa}
+        <div style={{
+          padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          background: 'rgba(255,255,255,0.03)'
+        }}>
+          <h3 style={{ color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+            <span style={{ fontSize: '1.2rem' }}>🎟️</span> Dettaglio Ticket #{commessa}
           </h3>
           <button 
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-full text-white/60 hover:text-white transition-colors"
+            style={{
+              padding: '8px', background: 'rgba(255,255,255,0.05)', border: 'none',
+              borderRadius: '50%', color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+            }}
           >
             ✕
           </button>
         </div>
         
         {/* Iframe */}
-        <div className="flex-1 bg-neutral-900 relative">
+        <div style={{ flex: 1, backgroundColor: '#000', position: 'relative' }}>
           <iframe 
             src={ticketUrl}
-            className="w-full h-full border-none"
+            style={{ width: '100%', height: '100%', border: 'none' }}
             title={`Ticket ${commessa}`}
           />
         </div>
@@ -363,14 +383,17 @@ export default function Home() {
                         <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                           <span style={{ fontSize: '1.2rem' }} title="Matchato con Ticket">✅</span>
                           {record.matched_ticket && (
-                            <button
-                              onClick={() => setShowTicketCommessa(record.matched_ticket!)}
-                              style={{
-                                background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
-                                borderRadius: '8px', padding: '4px 8px', cursor: 'pointer',
-                                fontSize: '0.7rem', color: '#60a5fa', textDecoration: 'none',
-                                display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap'
-                              }}
+                           <button
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setShowTicketCommessa(record.matched_ticket!);
+                             }}
+                             style={{
+                               background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
+                               borderRadius: '8px', padding: '4px 8px', cursor: 'pointer',
+                               fontSize: '0.7rem', color: '#60a5fa', textDecoration: 'none',
+                               display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap'
+                             }}
                               title={`Ticket: ${record.matched_ticket}`}
                             >
                               🎟️ Vedi Ticket
