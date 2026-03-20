@@ -10,9 +10,19 @@ export async function GET(req: NextRequest) {
     const dateFilter = searchParams.get('date');
     const startDateFilter = searchParams.get('startDate');
     const endDateFilter = searchParams.get('endDate');
+    const commessaFilter = searchParams.get('commessa');
 
     let rows;
-    if (startDateFilter && endDateFilter) {
+    if (commessaFilter) {
+      rows = await sql`
+        SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
+               lavorazione_eseguita, note, lat, lng,
+               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket
+        FROM records
+        WHERE matched_ticket = ${commessaFilter}
+        ORDER BY timestamp DESC
+      `;
+    } else if (startDateFilter && endDateFilter) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
