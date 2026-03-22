@@ -68,9 +68,9 @@ function TicketPopup({ commessa, signedUrl, onClose }: { commessa: string, signe
       backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)'
     }} onClick={onClose}>
       <div style={{
-        position: 'relative', width: '100%', maxWidth: '900px', height: '85vh',
-        backgroundColor: '#121212', borderRadius: '24px', overflow: 'hidden',
-        border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+        position: 'relative', width: '100%', maxWidth: '1100px', height: '92vh',
+        backgroundColor: '#121212', borderRadius: '20px', overflow: 'hidden',
+        border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
         display: 'flex', flexDirection: 'column'
       }} onClick={e => e.stopPropagation()}>
         {/* Header con chiusura */}
