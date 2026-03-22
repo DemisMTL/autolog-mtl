@@ -33,12 +33,13 @@ export async function POST(req: NextRequest) {
 
         // 1. Controllo Continuità Cliente (raggio 200m dallo stesso giorno)
         let clienteBloccato: string | null = null;
+        let fornitoreBloccato: string | null = null;
         if (location) {
             try {
                 await ensureTable();
                 const sql = getDb();
                 const lastRecord = await sql`
-                    SELECT lat, lng, cliente, timestamp
+                    SELECT lat, lng, cliente, timestamp, fornitore_servizio
                     FROM records
                     WHERE lat IS NOT NULL AND lng IS NOT NULL AND cliente IS NOT NULL
                     ORDER BY timestamp DESC LIMIT 1
@@ -52,7 +53,8 @@ export async function POST(req: NextRequest) {
                         const dist = haversineMeters(rec.lat, rec.lng, location.lat, location.lng);
                         if (dist <= 200) {
                             clienteBloccato = rec.cliente;
-                            console.log(`Continuità Cliente attivata: distanza ${dist.toFixed(0)}m, cliente: ${clienteBloccato}`);
+                            fornitoreBloccato = rec.fornitore_servizio;
+                            console.log(`Continuità Cliente/Fornitore attivata: distanza ${dist.toFixed(0)}m, cliente: ${clienteBloccato}`);
                         }
                     }
                 }
@@ -190,6 +192,15 @@ Schema JSON:
             const parsedData = JSON.parse(text);
             if (parsedData.targa) parsedData.targa = parsedData.targa.replace(/\s+/g, "").toUpperCase();
             if (parsedData.telaio) parsedData.telaio = parsedData.telaio.replace(/\s+/g, "").toUpperCase();
+
+            // Sostituzione forzata cliente se in continuità
+            if (clienteBloccato) {
+                parsedData.cliente = clienteBloccato;
+                // Assegnamento fornitore se non rilevato dall'IA nell'ultima scheda
+                if (fornitoreBloccato && !parsedData.fornitore_servizio) {
+                    parsedData.fornitore_servizio = fornitoreBloccato;
+                }
+            }
 
             // Ritorna le aziende dirette trovate da Google (se presenti)
             const debugInfo = {
