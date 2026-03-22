@@ -70,8 +70,8 @@ export async function GET(req: NextRequest) {
       marca_modello_tachigrafo: r.marca_modello_tachigrafo,
       fornitore_servizio: r.fornitore_servizio,
       tecnico: r.tecnico,
-      is_matched: !!r.is_matched,
-      matched_ticket: r.matched_ticket || null
+      is_matched: r.is_matched === true || r.is_matched === 1 || r.is_matched === 'true' || r.is_matched === 't',
+      matched_ticket: (r.matched_ticket && r.matched_ticket !== 'null' && r.matched_ticket !== 'undefined') ? r.matched_ticket : null
     }));
 
     return NextResponse.json({ records });

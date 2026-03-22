@@ -382,8 +382,8 @@ export default function Home() {
                     <p>{record.lavorazione_eseguita || record.note || '—'}</p>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '8px' }}>
-                    {/* RIGA SUPERIORE (Spunta e Ticket) - Mostra la riga SOLO se almeno uno dei due è presente */}
-                    {(record.is_matched === true || (record.matched_ticket && record.matched_ticket !== "")) && (
+                    {/* RIGA SUPERIORE (Spunta e Ticket) - Mostra la riga SOLO se almeno uno dei due è presente e valido */}
+                    {(record.is_matched === true || (record.matched_ticket && String(record.matched_ticket).length > 1 && record.matched_ticket !== "null")) && (
                       <div style={{ display: 'flex', gap: '8px' }}>
                         {record.is_matched === true && (
                           <div style={{
@@ -395,9 +395,9 @@ export default function Home() {
                             <span style={{ fontSize: '1.2rem', filter: 'drop-shadow(0 0 5px rgba(16,185,129,0.3))' }}>✅</span>
                           </div>
                         )}
-                        {record.matched_ticket && record.matched_ticket !== "" && (
+                        {record.matched_ticket && String(record.matched_ticket).length > 1 && record.matched_ticket !== "null" && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); setShowTicketCommessa(record.matched_ticket!); }}
+                            onClick={(e) => { e.stopPropagation(); setShowTicketCommessa(String(record.matched_ticket!)); }}
                             style={{
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               width: '40px', height: '40px',
