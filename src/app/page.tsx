@@ -217,7 +217,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState<InterventRecord | null>(null);
 
-  const [showTicketCommessa, setShowTicketCommessa] = useState<string | null>(null);
+  const [showTicketInfo, setShowTicketInfo] = useState<{ commessa: string, signedUrl: string | null } | null>(null);
 
   const loadRecords = async () => {
     setIsLoading(true);
@@ -459,10 +459,11 @@ export default function Home() {
         </Link>
       </div>
       {/* Modale Ticket Popup */}
-      {showTicketCommessa && (
+      {showTicketInfo && (
         <TicketPopup 
-          commessa={showTicketCommessa} 
-          onClose={() => setShowTicketCommessa(null)} 
+          commessa={showTicketInfo.commessa} 
+          signedUrl={showTicketInfo.signedUrl}
+          onClose={() => setShowTicketInfo(null)} 
         />
       )}
     </main>
