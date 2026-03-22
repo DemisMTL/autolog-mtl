@@ -50,13 +50,32 @@ export async function POST(req: NextRequest) {
         const ticketAppUrl = process.env.TICKET_APP_URL || 'http://localhost:3001';
         // Privilegiamo il seriale se valido, altrimenti usiamo la targa
         const syncPayload = validSeriale ? seriale_centralina : targa;
+
+        // Normalizzazione nome cliente per matchmaking fuzzy
+        // Rimuove spazi, punteggiatura e sigle societarie comuni
+        const normalizeClient = (name: string) => {
+          if (!name) return "";
+          return name.toUpperCase()
+            .replace(/\s+/g, '')
+            .replace(/\./g, '')
+            .replace(/, /g, '')
+            .replace(/SPA$/g, '')
+            .replace(/SRL$/g, '')
+            .replace(/SAS$/g, '')
+            .replace(/SNC$/g, '');
+        };
         
-        console.log(`[BACKEND-SYNC] Notifying App-Ticket at ${ticketAppUrl}/api/tickets/sync for: ${syncPayload}`);
+        const normalizedClient = normalizeClient(cliente || "");
+        
+        console.log(`[BACKEND-SYNC] Notifying App-Ticket at ${ticketAppUrl}/api/tickets/sync for: ${syncPayload} (Client: ${normalizedClient})`);
         
         const syncRes = await fetch(`${ticketAppUrl}/api/tickets/sync`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ serialNumber: syncPayload })
+          body: JSON.stringify({ 
+            serialNumber: syncPayload,
+            customerName: normalizedClient 
+          })
         });
         
         if (!syncRes.ok) {
