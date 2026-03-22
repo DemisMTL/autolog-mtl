@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     }
 
     const SYNC_API_KEY = process.env.SYNC_API_KEY || '';
-    const TICKET_APP_URL = process.env.TICKET_APP_URL || 'http://localhost:3000';
+    const TICKET_APP_URL = process.env.TICKET_APP_URL || process.env.NEXT_PUBLIC_TICKET_APP_URL || 'https://app-ticket-sigma.vercel.app';
     const crypto = require('crypto');
 
     const records = rows.map((r: any) => {
