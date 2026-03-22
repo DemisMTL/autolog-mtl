@@ -41,10 +41,15 @@ export async function POST(req: NextRequest) {
     `;
 
     // ─── Sync with App-Ticket (automatic closure) ───
-    if (seriale_centralina || targa) {
+    // Evita di sincronizzare se i dati sono troppo brevi o assenti (es. targa non letta bene)
+    const validSeriale = seriale_centralina && seriale_centralina.length > 5;
+    const validTarga = targa && targa.length > 4;
+
+    if (validSeriale || validTarga) {
       try {
         const ticketAppUrl = process.env.TICKET_APP_URL || 'http://localhost:3001';
-        const syncPayload = [seriale_centralina, targa].filter(Boolean).join(' ');
+        // Privilegiamo il seriale se valido, altrimenti usiamo la targa
+        const syncPayload = validSeriale ? seriale_centralina : targa;
         
         console.log(`[BACKEND-SYNC] Notifying App-Ticket at ${ticketAppUrl}/api/tickets/sync for: ${syncPayload}`);
         

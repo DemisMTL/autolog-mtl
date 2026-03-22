@@ -29,3 +29,25 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const sql = getDb();
+
+    await sql`
+      UPDATE records 
+      SET is_matched = FALSE,
+          matched_ticket = NULL
+      WHERE id = ${id}
+    `;
+
+    return NextResponse.json({ success: true, id });
+  } catch (error: any) {
+    console.error('Errore rimozione match record:', error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

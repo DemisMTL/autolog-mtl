@@ -277,6 +277,20 @@ export default function Home() {
     setEditingRecord(null);
   };
 
+  const handleUnmatch = async (recordId: number) => {
+    if (!confirm("Vuoi davvero rimuovere l'accoppiamento con questo ticket?")) return;
+    try {
+      const res = await fetch(`/api/records/${recordId}/match`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setRecords(prev => prev.map(r => r.id === recordId ? { ...r, is_matched: false, matched_ticket: null } : r));
+      }
+    } catch (err) {
+      console.error('Errore durante l\'unmatch:', err);
+    }
+  };
+
   return (
     <main className="app-container">
       <div className="bg-glow"></div>
@@ -396,18 +410,28 @@ export default function Home() {
                           </div>
                         )}
                         {record.matched_ticket && String(record.matched_ticket).length > 1 && record.matched_ticket !== "null" && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setShowTicketCommessa(String(record.matched_ticket!)); }}
-                            style={{
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              width: '40px', height: '40px',
-                              background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.2)',
-                              borderRadius: '12px', cursor: 'pointer', fontSize: '1.3rem', transition: 'all 0.2s'
-                            }}
-                            title="Vedi Ticket"
-                          >
-                            🎟️
-                          </button>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setShowTicketCommessa(String(record.matched_ticket!)); }}
+                              style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                width: '40px', height: '40px',
+                                background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.2)',
+                                borderRadius: '12px', cursor: 'pointer', fontSize: '1.3rem', transition: 'all 0.2s'
+                              }}
+                              title="Vedi Ticket"
+                            >
+                              🎟️
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleUnmatch(record.id); }}
+                              style={{
+                                padding: '2px', background: 'rgba(255,255,255,0.05)', border: 'none',
+                                borderRadius: '4px', color: 'rgba(255,255,255,0.4)', fontSize: '0.6rem',
+                                cursor: 'pointer', textTransform: 'uppercase'
+                              }}
+                            >Scollega</button>
+                          </div>
                         )}
                       </div>
                     )}
