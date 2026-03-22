@@ -24,6 +24,7 @@ interface InterventRecord {
   tecnico?: string | null;
   is_matched?: boolean;
   matched_ticket?: string | null;
+  signed_ticket_url?: string | null;
 }
 
 const VEHICLE_ICONS: { [key: string]: string } = {
@@ -54,10 +55,10 @@ function formatDate(timestamp: string): { day: string; time: string } {
 }
 
 // ─── Modale Ticket (Iframe) ──────────────────────────────────────────────────
-function TicketPopup({ commessa, onClose }: { commessa: string, onClose: () => void }) {
+function TicketPopup({ commessa, signedUrl, onClose }: { commessa: string, signedUrl?: string | null, onClose: () => void }) {
   let baseUrl = process.env.NEXT_PUBLIC_TICKET_APP_URL || '';
   if (baseUrl && !baseUrl.startsWith('http')) baseUrl = `https://${baseUrl}`;
-  const ticketUrl = `${baseUrl}/view?commessa=${commessa}&embed=true`;
+  const ticketUrl = signedUrl || `${baseUrl}/view?commessa=${commessa}&embed=true`;
 
   return (
     <div style={{
@@ -397,7 +398,13 @@ export default function Home() {
                         )}
                         {record.matched_ticket && String(record.matched_ticket).length > 1 && record.matched_ticket !== "null" && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); setShowTicketCommessa(String(record.matched_ticket!)); }}
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setShowTicketInfo({ 
+                                commessa: String(record.matched_ticket!), 
+                                signedUrl: record.signed_ticket_url || null 
+                              }); 
+                            }}
                             style={{
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               width: '40px', height: '40px',

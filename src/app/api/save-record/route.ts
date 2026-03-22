@@ -1,14 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, ensureTable } from '@/lib/db';
+import { z } from 'zod';
+
+const recordSchema = z.object({
+  targa: z.string().optional().nullable(),
+  tipo_veicolo: z.string().optional().nullable(),
+  numero_veicolo: z.string().optional().nullable(),
+  lavorazione_eseguita: z.string().optional().nullable(),
+  note: z.string().optional().nullable(),
+  lat: z.number().optional().nullable(),
+  lng: z.number().optional().nullable(),
+  timestamp: z.string().optional().nullable(),
+  telaio: z.string().optional().nullable(),
+  seriale_centralina: z.string().optional().nullable(),
+  marca_veicolo: z.string().optional().nullable(),
+  cliente: z.string().optional().nullable(),
+  anno_immatricolazione: z.string().optional().nullable(),
+  marca_modello_tachigrafo: z.string().optional().nullable(),
+  fornitore_servizio: z.string().optional().nullable(),
+  tecnico: z.string().optional().nullable(),
+});
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const bodyRaw = await req.json();
+    const result_zod = recordSchema.safeParse(bodyRaw);
+
+    if (!result_zod.success) {
+      return NextResponse.json({ error: 'Validation failed', details: result_zod.error.issues }, { status: 400 });
+    }
+
     const {
       targa, tipo_veicolo, numero_veicolo,
-      lavorazione_eseguita, note, lat, lng, timestamp, // Changed: location removed, lat and lng added
+      lavorazione_eseguita, note, lat, lng, timestamp,
       telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico
-    } = body;
+    } = result_zod.data;
 
     await ensureTable();
     const sql = getDb();
@@ -71,7 +97,10 @@ export async function POST(req: NextRequest) {
         
         const syncRes = await fetch(`${ticketAppUrl}/api/tickets/sync`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.SYNC_API_KEY || ''
+          },
           body: JSON.stringify({ 
             serialNumber: syncPayload,
             customerName: normalizedClient 

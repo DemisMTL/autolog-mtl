@@ -52,27 +52,47 @@ export async function GET(req: NextRequest) {
       `;
     }
 
-    const records = rows.map((r: any) => ({
-      id: r.id,
-      timestamp: r.timestamp,
-      targa: r.targa,
-      tipo_veicolo: r.tipo_veicolo,
-      numero_veicolo: r.numero_veicolo,
-      cliente: r.cliente,
-      lavorazione_eseguita: r.lavorazione_eseguita,
-      note: r.note || '',
-      lat: r.lat ? parseFloat(r.lat) : null,
-      lng: r.lng ? parseFloat(r.lng) : null,
-      telaio: r.telaio,
-      seriale_centralina: r.seriale_centralina,
-      marca_veicolo: r.marca_veicolo,
-      anno_immatricolazione: r.anno_immatricolazione,
-      marca_modello_tachigrafo: r.marca_modello_tachigrafo,
-      fornitore_servizio: r.fornitore_servizio,
-      tecnico: r.tecnico,
-      is_matched: r.is_matched === true || r.is_matched === 1 || r.is_matched === 'true' || r.is_matched === 't',
-      matched_ticket: (r.matched_ticket && r.matched_ticket !== 'null' && r.matched_ticket !== 'undefined') ? r.matched_ticket : null
-    }));
+    const SYNC_API_KEY = process.env.SYNC_API_KEY || '';
+    const TICKET_APP_URL = process.env.TICKET_APP_URL || 'http://localhost:3000';
+    const crypto = require('crypto');
+
+    const records = rows.map((r: any) => {
+      const commessa = (r.matched_ticket && r.matched_ticket !== 'null' && r.matched_ticket !== 'undefined') ? r.matched_ticket : null;
+      let signedUrl = null;
+
+      if (commessa && SYNC_API_KEY) {
+        const timestamp = Date.now().toString();
+        const signature = crypto
+          .createHmac('sha256', SYNC_API_KEY)
+          .update(`${commessa}:${timestamp}`)
+          .digest('hex');
+          
+        signedUrl = `${TICKET_APP_URL}/view?commessa=${commessa}&embed=true&ts=${timestamp}&sig=${signature}`;
+      }
+
+      return {
+        id: r.id,
+        timestamp: r.timestamp,
+        targa: r.targa,
+        tipo_veicolo: r.tipo_veicolo,
+        numero_veicolo: r.numero_veicolo,
+        cliente: r.cliente,
+        lavorazione_eseguita: r.lavorazione_eseguita,
+        note: r.note || '',
+        lat: r.lat ? parseFloat(r.lat) : null,
+        lng: r.lng ? parseFloat(r.lng) : null,
+        telaio: r.telaio,
+        seriale_centralina: r.seriale_centralina,
+        marca_veicolo: r.marca_veicolo,
+        anno_immatricolazione: r.anno_immatricolazione,
+        marca_modello_tachigrafo: r.marca_modello_tachigrafo,
+        fornitore_servizio: r.fornitore_servizio,
+        tecnico: r.tecnico,
+        is_matched: r.is_matched === true || r.is_matched === 1 || r.is_matched === 'true' || r.is_matched === 't',
+        matched_ticket: commessa,
+        signed_ticket_url: signedUrl
+      };
+    });
 
     return NextResponse.json({ records });
   } catch (error: any) {
