@@ -350,8 +350,14 @@ export default function Home() {
               const { day, time } = formatDate(record.timestamp);
               return (
                 <div key={record.id} className="record-card">
-                  <div className="record-icon">
-                    <img style={{ width: '100%', height: '100%', objectFit: 'contain' }} src={getVehicleIcon(record.tipo_veicolo)} alt="Vehicle Icon" />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', minWidth: '70px' }}>
+                    <div className="record-meta" style={{ textAlign: 'center', lineHeight: '1.2' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{day}</span><br />
+                      <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{time}</span>
+                    </div>
+                    <div className="record-icon" style={{ margin: 0 }}>
+                      <img style={{ width: '100%', height: '100%', objectFit: 'contain' }} src={getVehicleIcon(record.tipo_veicolo)} alt="Vehicle Icon" />
+                    </div>
                   </div>
                   <div className="record-details" style={{ flex: 1 }}>
                     <h3 style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -375,66 +381,59 @@ export default function Home() {
                     )}
                     <p>{record.lavorazione_eseguita || record.note || '—'}</p>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
-                    <div className="record-meta" style={{ textAlign: 'right' }}>
-                      <span>{day}</span><br />
-                      <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{time}</span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {/* Stato Match */}
-                      {record.is_matched && (
-                        <span style={{ fontSize: '1.2rem', filter: 'drop-shadow(0 0 5px rgba(16,185,129,0.3))' }} title="Matchato con Ticket">✅</span>
-                      )}
-
-                      {/* Gruppo Azioni */}
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        background: 'rgba(255,255,255,0.03)', 
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '12px',
-                        padding: '3px'
-                      }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '8px' }}>
+                    {/* RIGA SUPERIORE (Spunta e Ticket) */}
+                    {(record.is_matched || record.matched_ticket) && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {record.is_matched && (
+                          <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            width: '40px', height: '40px',
+                            background: 'rgba(16,185,129,0.1)', borderRadius: '12px',
+                            border: '1px solid rgba(16,185,129,0.2)'
+                          }} title="Matchato con Ticket">
+                            <span style={{ fontSize: '1.2rem', filter: 'drop-shadow(0 0 5px rgba(16,185,129,0.3))' }}>✅</span>
+                          </div>
+                        )}
                         {record.matched_ticket && (
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowTicketCommessa(record.matched_ticket!);
-                            }}
+                            onClick={(e) => { e.stopPropagation(); setShowTicketCommessa(record.matched_ticket!); }}
                             style={{
-                              background: 'rgba(59,130,246,0.15)', border: 'none',
-                              borderRadius: '9px', padding: '6px 12px', cursor: 'pointer',
-                              fontSize: '0.75rem', color: '#60a5fa', fontWeight: 'bold',
-                              display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap',
-                              transition: 'all 0.2s', margin: '0 2px'
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              width: '40px', height: '40px',
+                              background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.2)',
+                              borderRadius: '12px', cursor: 'pointer', fontSize: '1.3rem', transition: 'all 0.2s'
                             }}
+                            title="Vedi Ticket"
                           >
-                            <span>🎟️</span> Vedi Ticket
+                            🎟️
                           </button>
                         )}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setEditingRecord(record); }}
-                          style={{ 
-                            background: 'transparent', border: 'none', borderRadius: '9px', 
-                            padding: '6px 10px', cursor: 'pointer', fontSize: '1rem',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            transition: 'all 0.2s'
-                          }}
-                          title="Modifica"
-                        >✏️</button>
-                        <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)', margin: '0 2px' }}></div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDelete(record.id); }}
-                          style={{ 
-                            background: 'transparent', border: 'none', borderRadius: '9px', 
-                            padding: '6px 10px', cursor: 'pointer', fontSize: '1rem',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            transition: 'all 0.2s'
-                          }}
-                          title="Elimina"
-                        >🗑</button>
                       </div>
+                    )}
+                    
+                    {/* RIGA INFERIORE (Modifica ed Elimina) */}
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditingRecord(record); }}
+                        style={{ 
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          width: '40px', height: '40px',
+                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', 
+                          cursor: 'pointer', fontSize: '1.2rem', transition: 'all 0.2s'
+                        }}
+                        title="Modifica"
+                      >✏️</button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(record.id); }}
+                        style={{ 
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          width: '40px', height: '40px',
+                          background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', 
+                          cursor: 'pointer', fontSize: '1.2rem', transition: 'all 0.2s'
+                        }}
+                        title="Elimina"
+                      >🗑</button>
                     </div>
                   </div>
                 </div>
