@@ -218,6 +218,71 @@ export default function Home() {
   const [editingRecord, setEditingRecord] = useState<InterventRecord | null>(null);
 
   const [showTicketInfo, setShowTicketInfo] = useState<{ commessa: string, signedUrl: string | null } | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanStatus, setScanStatus] = useState<string | null>(null);
+
+  const compressImage = (dataUrl: string): Promise<string> =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1200;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+          else { width = Math.round(width * MAX / height); height = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.src = dataUrl;
+    });
+
+  const handleScanFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsScanning(true);
+    setScanStatus("Analisi in corso...");
+
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve) => {
+        reader.onload = (ev) => resolve(ev.target?.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      const compressed = await compressImage(base64);
+
+      const res = await fetch("/api/scan-ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: compressed }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || data.error || "Errore durante la scansione");
+      }
+
+      setScanStatus(`Trovato: ${data.code_found}`);
+      setTimeout(() => {
+        setIsScanning(false);
+        setScanStatus(null);
+        setShowTicketInfo({
+          commessa: data.ticket.commessa,
+          signedUrl: data.ticket.signedUrl
+        });
+      }, 1000);
+
+    } catch (err: any) {
+      alert(err.message);
+      setIsScanning(false);
+      setScanStatus(null);
+    }
+  };
 
   const loadRecords = async () => {
     setIsLoading(true);
@@ -295,18 +360,48 @@ export default function Home() {
         <div>
           <img src="/logo.jpg" alt="MecTronicLab Logo" style={{ height: '56px', objectFit: 'contain', background: 'rgba(255,255,255,0.95)', padding: '6px 16px', borderRadius: '14px' }} />
         </div>
-        <Link href="/report" style={{ textDecoration: 'none' }}>
-          <div style={{
-            height: '56px', borderRadius: '14px', background: 'rgba(211,47,47,0.12)', border: '1px solid rgba(211,47,47,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-            backdropFilter: 'blur(8px)', padding: '0 20px', color: 'var(--accent)', fontWeight: '600', fontSize: '1.05rem'
-          }}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" style={{ width: '24px', height: '24px' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-            </svg>
-            Report
-          </div>
-        </Link>
+
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <label style={{ cursor: 'pointer' }}>
+            <input 
+              type="file" 
+              accept="image/*" 
+              capture="environment" 
+              onChange={handleScanFile} 
+              style={{ display: 'none' }} 
+            />
+            <div style={{
+              height: '56px', borderRadius: '14px', 
+              background: isScanning ? 'var(--accent)' : 'rgba(255,255,255,0.05)', 
+              border: '1px solid rgba(255,255,255,0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+              backdropFilter: 'blur(8px)', padding: '0 20px', 
+              color: isScanning ? 'white' : 'var(--accent)', 
+              fontWeight: '600', fontSize: '1.05rem',
+              transition: 'all 0.3s ease'
+            }}>
+              {isScanning ? (
+                <span className="recording-pulse">⏳</span>
+              ) : (
+                <span style={{ fontSize: '1.4rem' }}>📷</span>
+              )}
+              <span>{isScanning ? 'Analisi...' : 'Cerca'}</span>
+            </div>
+          </label>
+
+          <Link href="/report" style={{ textDecoration: 'none' }}>
+            <div style={{
+              height: '56px', borderRadius: '14px', background: 'rgba(211,47,47,0.12)', border: '1px solid rgba(211,47,47,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              backdropFilter: 'blur(8px)', padding: '0 20px', color: 'var(--accent)', fontWeight: '600', fontSize: '1.05rem'
+            }}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" style={{ width: '24px', height: '24px' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+              </svg>
+              Report
+            </div>
+          </Link>
+        </div>
       </header>
 
       <section className="glass-panel" style={{ marginTop: '8px' }}>
@@ -466,6 +561,18 @@ export default function Home() {
           onClose={() => setShowTicketInfo(null)} 
         />
       )}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.05); opacity: 0.8; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .recording-pulse {
+          animation: pulse 1.5s infinite;
+          display: inline-block;
+        }
+      `}} />
     </main>
   );
 }
