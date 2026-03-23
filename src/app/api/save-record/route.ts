@@ -68,12 +68,12 @@ export async function POST(req: NextRequest) {
 
     // ─── Sync with App-Ticket (automatic closure) ───
     // Evita di sincronizzare se i dati sono troppo brevi o assenti (es. targa non letta bene)
-    const validSeriale = seriale_centralina && seriale_centralina.length > 5;
+    const validSeriale = seriale_centralina && seriale_centralina.length >= 4;
     const validTarga = targa && targa.length > 4;
 
     if (validSeriale || validTarga) {
       try {
-        const ticketAppUrl = process.env.TICKET_APP_URL || 'http://localhost:3001';
+        const ticketAppUrl = process.env.TICKET_APP_URL || process.env.NEXT_PUBLIC_TICKET_APP_URL || 'https://app-ticket-sigma.vercel.app';
         // Privilegiamo il seriale se valido, altrimenti usiamo la targa
         const syncPayload = validSeriale ? seriale_centralina : targa;
 
@@ -113,6 +113,17 @@ export async function POST(req: NextRequest) {
         } else {
           const syncData = await syncRes.json();
           console.log('[BACKEND-SYNC] Sync success:', syncData);
+          
+          // Se il sync ha avuto successo ed è stato chiuso un ticket, aggiorniamo il record locale
+          if (syncData.closed === 1 && syncData.id) {
+            await sql`
+              UPDATE records 
+              SET is_matched = true, 
+                  matched_ticket = ${syncData.id} 
+              WHERE id = ${result[0].id}
+            `;
+            console.log(`[BACKEND-SYNC] Local record ${result[0].id} updated as matched with ticket ${syncData.id}`);
+          }
         }
       } catch (syncErr: any) {
         console.error('[BACKEND-SYNC] Error calling App-Ticket sync API:', syncErr.message);

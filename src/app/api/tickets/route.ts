@@ -36,8 +36,11 @@ export async function PATCH(req: NextRequest) {
 
         const res = await fetch(`${TICKET_APP_URL}/api/tickets/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status }),
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-api-key': process.env.SYNC_API_KEY || ''
+            },
+            body: JSON.stringify(body),
         });
 
         if (!res.ok) {
