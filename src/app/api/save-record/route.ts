@@ -103,7 +103,8 @@ export async function POST(req: NextRequest) {
           },
           body: JSON.stringify({ 
             serialNumber: syncPayload,
-            customerName: normalizedClient 
+            customerName: normalizedClient,
+            plate: targa
           })
         });
         
