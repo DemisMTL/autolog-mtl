@@ -356,12 +356,13 @@ export default function Home() {
         />
       )}
 
-      <header className="header">
-        <div>
+      <header className="header" style={{ gap: '12px' }}>
+        <div style={{ flexShrink: 0 }}>
           <img src="/logo.jpg" alt="MecTronicLab Logo" style={{ height: '56px', objectFit: 'contain', background: 'rgba(255,255,255,0.95)', padding: '6px 16px', borderRadius: '14px' }} />
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1, justifyContent: 'flex-end' }}>
+          {/* Cerca/Scan Button */}
           <label style={{ cursor: 'pointer' }}>
             <input 
               type="file" 
@@ -371,34 +372,49 @@ export default function Home() {
               style={{ display: 'none' }} 
             />
             <div style={{
-              height: '56px', borderRadius: '14px', 
+              width: '56px', height: '56px', borderRadius: '14px', 
               background: isScanning ? 'var(--accent)' : 'rgba(255,255,255,0.05)', 
               border: '1px solid rgba(255,255,255,0.1)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-              backdropFilter: 'blur(8px)', padding: '0 20px', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(8px)', 
               color: isScanning ? 'white' : 'var(--accent)', 
-              fontWeight: '600', fontSize: '1.05rem',
               transition: 'all 0.3s ease'
-            }}>
+            }} title="Scansiona Ticket / Cerca">
               {isScanning ? (
                 <span className="recording-pulse">⏳</span>
               ) : (
                 <span style={{ fontSize: '1.4rem' }}>📷</span>
               )}
-              <span>{isScanning ? 'Analisi...' : 'Cerca'}</span>
             </div>
           </label>
 
+          {/* Ticket App Link */}
+          <a 
+            href={process.env.NEXT_PUBLIC_TICKET_APP_URL || '#'} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{
+              width: '56px', height: '56px', borderRadius: '14px',
+              background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(8px)', color: '#60a5fa', transition: 'all 0.3s ease'
+            }}
+            title="Vai all'App Ticket"
+          >
+            <span style={{ fontSize: '1.4rem' }}>🎟️</span>
+          </a>
+
+          {/* Report Link */}
           <Link href="/report" style={{ textDecoration: 'none' }}>
             <div style={{
-              height: '56px', borderRadius: '14px', background: 'rgba(211,47,47,0.12)', border: '1px solid rgba(211,47,47,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              backdropFilter: 'blur(8px)', padding: '0 20px', color: 'var(--accent)', fontWeight: '600', fontSize: '1.05rem'
-            }}>
+              width: '56px', height: '56px', borderRadius: '14px',
+              background: 'rgba(211,47,47,0.12)', border: '1px solid rgba(211,47,47,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(8px)', color: 'var(--accent)', transition: 'all 0.3s ease'
+            }} title="Visualizza Report">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" style={{ width: '24px', height: '24px' }}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
               </svg>
-              Report
             </div>
           </Link>
         </div>

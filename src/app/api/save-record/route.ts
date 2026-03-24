@@ -115,8 +115,8 @@ export async function POST(req: NextRequest) {
           const syncData = await syncRes.json();
           console.log('[BACKEND-SYNC] Sync success:', syncData);
           
-          // Se il sync ha avuto successo ed è stato chiuso un ticket, aggiorniamo il record locale
-          if (syncData.closed === 1 && syncData.id) {
+          // Se il sync ha avuto successo (sia chiudendo il ticket che solo trovandolo), aggiorniamo il record locale
+          if ((syncData.closed === 1 || syncData.found === 1) && syncData.id) {
             await sql`
               UPDATE records 
               SET is_matched = true, 
