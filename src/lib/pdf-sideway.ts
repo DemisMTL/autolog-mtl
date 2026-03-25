@@ -1,100 +1,77 @@
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+
 /**
- * Genera il certificato PDF per l'installazione SIDEWAY basato sul modello Word fornito
- * @param record Il record dell'intervento con i dati necessari
+ * Genera il certificato PDF basato sul file originale (DEMO) sovrascrivendo i dati.
+ * @param record Il record dell'intervento con i dati nuovi
  */
 export async function generateSidewayCertification(record: any) {
-    const { jsPDF } = await import('jspdf');
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    // 1. Carica il template originale dalla cartella public
+    const url = '/sideway_template.pdf';
+    const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
 
-    const margin = 20;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let y = 25;
+    // 2. Carica il documento
+    const pdfDoc = await PDFDocument.load(existingPdfBytes);
+    const pages = pdfDoc.getPages();
+    const firstPage = pages[0];
+    const { width, height } = firstPage.getSize();
 
-    // Titolo centrato
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text('DICHIARAZIONE DI CORRETTA INSTALLAZIONE SISTEMA SIDEWAY', pageWidth / 2, y, { align: 'center' });
-    
-    y += 15;
-    
-    // Testo introduttivo
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    const introText = `Il sottoscritto EDOARDO ZAGO, nato il 05/03/1988 a ISOLA DELLA SCALA (VR) e residente a TREVENZUOLO (VR) in Via SANT’EUROSIA n. 12/C Codice Fiscale ZGADRD88C05E349V, della ditta MECTRONIC LAB con sede a VERONA (VR) in Via GIUSEPPE SIRTORI n. 5/A CAP 37128 P.IVA: 04826920235 e Codice Fiscale: 04826920235`;
-    const splitIntro = doc.splitTextToSize(introText, pageWidth - (margin * 2));
-    doc.text(splitIntro, margin, y);
-    
-    y += (splitIntro.length * 6) + 5;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('DICHIARA:', margin, y);
-    y += 8;
-    
-    doc.setFont('helvetica', 'normal');
-    const dichiaraText = `di aver effettuato l’installazione di dispositivi di rilevazione dell’angolo cieco, sui mezzi della ditta ${record.cliente || 'AROSIO'} qui elencati:`;
-    const splitDichiara = doc.splitTextToSize(dichiaraText, pageWidth - (margin * 2));
-    doc.text(splitDichiara, margin, y);
-    
-    y += 12;
+    // 3. Carica il font
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // Tabella dati veicolo
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text('Targa mezzo', margin, y);
-    doc.text('Telaio mezzo', margin + 30, y);
-    doc.text('Marca dispositivo', margin + 85, y);
-    doc.text('Matricola Dispositivo', margin + 125, y);
-    
-    y += 7;
-    doc.setFont('helvetica', 'normal');
-    doc.text(record.targa || '—', margin, y);
-    doc.text(record.telaio || '—', margin + 30, y);
-    doc.text('SIDEWAY', margin + 85, y);
-    doc.text(record.seriale_centralina || '—', margin + 125, y);
-    
-    y += 15;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Altresì dichiara :', margin, y);
-    y += 8;
-    
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    const points = [
-        "che l’installazione è fatta a regola d’arte e secondo le norme vigenti ;",
-        "che l’installazione non compromette la conformità del bene su cui avviene ed è conforme alle prescrizioni applicabili al momento dell’installazione;",
-        "che l’installazione non compromette la garanzia del bene su cui avviene;",
-        "che l’installazione è fatta in osservanza delle istruzioni d’uso e raccomandazioni del fabbricante del bene su cui avviene;",
-        "che i dispositivi ed i componenti installati rispettano le normative applicabili per la destinazione d’uso per cui avviene l’installazione;",
-        "che i dispositivi ed i componenti installati non compromettono la conformità del bene su cui vengono installati secondo le prescrizioni applicabili al momento dell’installazione;",
-        "che i dispositivi ed i componenti installati non compromettono la garanzia del bene su cui vengono installati;",
-        "che i dispositivi ed i componenti installati sono compatibili con le istruzioni d’uso e raccomandazioni del fabbricante del bene su cui vengono installati."
-    ];
+    // Funzione helper per "sbiancare" e scrivere sopra
+    const replaceText = (newText: string, x: number, y: number, w: number, h: number, isBold = false) => {
+        // Disegna un rettangolo bianco per coprire il vecchio testo
+        firstPage.drawRectangle({
+            x: x - 1,
+            y: y - 2,
+            width: w + 2,
+            height: h + 4,
+            color: rgb(1, 1, 1),
+        });
+        // Scrive il nuovo testo
+        firstPage.drawText(newText || '—', {
+            x: x,
+            y: y,
+            size: 10,
+            font: isBold ? fontBold : font,
+            color: rgb(0, 0, 0),
+        });
+    };
 
-    points.forEach(point => {
-        const splitPoint = doc.splitTextToSize(`• ${point}`, pageWidth - (margin * 2) - 5);
-        doc.text(splitPoint, margin, y);
-        y += (splitPoint.length * 5) + 2;
-    });
+    // --- COORDINATE ESTIMATE (A4 595x842) ---
+    // Nota: Le coordinate Y partono dal basso (0)
+    // AROSIO si trova circa a metà altezza nel testo
     
-    y += 5;
-    const finalStatement = "Si dichiara altresì che l’installazione è stata controllata con esito positivo ai fini della sicurezza e funzionalità.";
-    doc.text(finalStatement, margin, y);
+    // 1. Cliente (Ditta)
+    // "sui mezzi della ditta AROSIO qui elencati"
+    // Supponiamo sia intorno a Y=600 (dal basso)
+    // Dovrò fare dei test per centrarlo bene.
+    replaceText(record.cliente || 'N/A', 112, 638, 150, 12, true);
+
+    // 2. Tabella Dati (Targa, Telaio, Seriale)
+    // FY465DJ (Targa)
+    replaceText(record.targa || '—', 58, 597, 60, 12);
     
-    y += 15;
+    // Telaio
+    replaceText(record.telaio || '—', 145, 597, 160, 12);
+    
+    // Seriale Dispositivo
+    replaceText(record.seriale_centralina || '—', 415, 597, 150, 12);
+
+    // 3. Data (TREVISO lì 09/09/2024)
     const today = new Date();
-    const dateStr = `${today.getDate().toString().padStart(2, '0')} / ${ (today.getMonth() + 1).toString().padStart(2, '0') } / ${today.getFullYear()}`;
-    doc.text(`TREVISO lì ${dateStr}`, margin, y);
-    
-    y += 20;
-    doc.text('__________________', margin, y);
-    doc.text('__________________', margin + 100, y);
-    y += 5;
-    doc.setFontSize(9);
-    doc.text('Per il Cliente', margin + 10, y);
-    doc.text("L'installatore", margin + 115, y);
+    const dateStr = `${today.getDate().toString().padStart(2, '0')} / ${(today.getMonth() + 1).toString().padStart(2, '0')} / ${today.getFullYear()}`;
+    replaceText(dateStr, 125, 239, 80, 12);
 
-    // Salva il file
-    const fileName = `Certificato_SIDEWAY_${record.targa || 'VEICOLO'}_${new Date().getTime()}.pdf`;
-    doc.save(fileName);
+    // 4. Se vogliamo cambiare anche il Tecnico (opzionale)
+    // replaceText(record.tecnico || 'EDOARDO ZAGO', 40, ...);
+
+    // 5. Salva e Avvia Download
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Certificato_SIDEWAY_${record.targa || 'VEICOLO'}.pdf`;
+    link.click();
 }
