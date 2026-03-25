@@ -222,6 +222,17 @@ export default function NewRecord() {
             console.warn('Salvataggio cloud fallito:', cloudErr);
         }
 
+        // 3. Se è un'installazione SIDEWAY, scarica il PDF in automatico
+        if (newRecord.lavorazione_eseguita?.toLowerCase().includes('sideway')) {
+            try {
+                // Import dinamico per evitare problemi SSR se necessario (anche se siamo in client component)
+                const { generateSidewayCertification } = await import('@/lib/pdf-sideway');
+                await generateSidewayCertification(newRecord);
+            } catch (pdfErr) {
+                console.error("Errore generazione PDF SIDEWAY:", pdfErr);
+            }
+        }
+
         router.push('/');
     };
 
