@@ -69,7 +69,7 @@ export async function generateSidewayCertification(record: any) {
 
     // 5. Salva e Avvia Download
     const pdfBytes = await pdfDoc.save();
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `Certificato_SIDEWAY_${record.targa || 'VEICOLO'}.pdf`;
