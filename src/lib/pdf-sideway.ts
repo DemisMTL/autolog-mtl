@@ -7,7 +7,11 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 export async function generateSidewayCertification(record: any) {
     // 1. Carica il template originale dalla cartella public
     const url = '/sideway_template.pdf';
-    const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer());
+    console.log("Fetching PDF template from:", url);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Fallito caricamento template PDF: ${res.status}`);
+    const existingPdfBytes = await res.arrayBuffer();
+    console.log("Template PDF caricato con successo, dimensione:", existingPdfBytes.byteLength);
 
     // 2. Carica il documento
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
@@ -68,10 +72,15 @@ export async function generateSidewayCertification(record: any) {
     // replaceText(record.tecnico || 'EDOARDO ZAGO', 40, ...);
 
     // 5. Salva e Avvia Download
+    console.log("Salvataggio documento PDF...");
     const pdfBytes = await pdfDoc.save();
+    console.log("Documento salvato, creazione Blob...");
     const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `Certificato_SIDEWAY_${record.targa || 'VEICOLO'}.pdf`;
+    document.body.appendChild(link); // Importante per alcuni browser
     link.click();
+    document.body.removeChild(link);
+    console.log("Download avviato tramite click simulato.");
 }

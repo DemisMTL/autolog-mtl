@@ -223,14 +223,21 @@ export default function NewRecord() {
         }
 
         // 3. Se è un'installazione SIDEWAY, scarica il PDF in automatico
+        console.log("Controllo lavorazione per PDF:", newRecord.lavorazione_eseguita);
         if (newRecord.lavorazione_eseguita?.toLowerCase().includes('sideway')) {
+            console.log("Innesco generazione PDF SIDEWAY...");
             try {
                 // Import dinamico per evitare problemi SSR se necessario (anche se siamo in client component)
                 const { generateSidewayCertification } = await import('@/lib/pdf-sideway');
                 await generateSidewayCertification(newRecord);
+                console.log("Generazione PDF completata.");
+                // Piccolo delay per assicurarsi che il browser processi il download
+                await new Promise(resolve => setTimeout(resolve, 1000));
             } catch (pdfErr) {
                 console.error("Errore generazione PDF SIDEWAY:", pdfErr);
             }
+        } else {
+            console.log("Lavorazione non SIDEWAY, salto PDF.");
         }
 
         router.push('/');
