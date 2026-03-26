@@ -23,7 +23,7 @@ export async function generateSidewayCertification(record: any) {
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        let y = height - 100; // Inizia sotto l'intestazione (circa 35mm dal bordo superiore se height=842)
+        let y = height - 125; // Spostato in basso di 2 righe rispetto a prima (era -100)
         const margin = 50;
         const colWidth = width - (2 * margin);
 
