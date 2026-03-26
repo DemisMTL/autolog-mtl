@@ -481,8 +481,8 @@ export default function Home() {
                         {record.marca_veicolo} {record.anno_immatricolazione ? `(${record.anno_immatricolazione})` : ''}
                       </p>
                     )}
-                    {(record.marca_modello_tachigrafo || record.fornitore_servizio) && (
-                      <div style={{ display: 'flex', gap: '8px', marginBottom: '2px' }}>
+                    {(record.marca_modello_tachigrafo || record.fornitore_servizio || record.tecnico) && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '2px' }}>
                         {record.marca_modello_tachigrafo && <span className="tag" style={{ color: '#e57373', fontSize: '0.85rem' }} title="Info Tachigrafo">⏱️ {record.marca_modello_tachigrafo}</span>}
                         {record.fornitore_servizio && <span className="tag" style={{ color: '#81c784', fontSize: '0.85rem' }} title="Fornitore Servizio">📡 {record.fornitore_servizio}</span>}
                         {record.tecnico && <span className="tag" style={{ color: '#fbc02d', fontSize: '0.85rem' }} title="Tecnico Assegnato">👤 {record.tecnico}</span>}
@@ -494,7 +494,29 @@ export default function Home() {
                     <p>{record.lavorazione_eseguita || record.note || '—'}</p>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '8px' }}>
-                    {/* RIGA SUPERIORE (Spunta e Ticket) - Mostra la riga SOLO se almeno uno dei due è presente e valido */}
+                    
+                    {/* Download SIDEWAY - Sempre visibile se è SIDEWAY */}
+                    {(record.lavorazione_eseguita?.toLowerCase().includes('sideway') || record.note?.toLowerCase().includes('sideway')) && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const { generateSidewayCertification } = await import('@/lib/pdf-sideway');
+                          await generateSidewayCertification(record);
+                        }}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          width: '40px', height: '40px',
+                          background: 'rgba(56, 189, 248, 0.2)', border: '1px solid rgba(56, 189, 248, 0.4)',
+                          borderRadius: '12px', cursor: 'pointer', fontSize: '1.2rem', transition: 'all 0.2s',
+                          boxShadow: '0 4px 12px rgba(56, 189, 248, 0.2)'
+                        }}
+                        title="Scarica Certificato SIDEWAY"
+                      >
+                        📄
+                      </button>
+                    )}
+
+                    {/* RIGA SUPERIORE (Spunta e Ticket) */}
                     {(record.is_matched === true || (record.matched_ticket && String(record.matched_ticket).length > 1 && record.matched_ticket !== "null")) && (
                       <div style={{ display: 'flex', gap: '8px' }}>
                         {record.is_matched === true && (
@@ -525,25 +547,6 @@ export default function Home() {
                             title="Vedi Ticket"
                           >
                             🎟️
-                          </button>
-                        )}
-                        {/* Download SIDEWAY */}
-                        {record.lavorazione_eseguita?.toLowerCase().includes('sideway') && (
-                          <button
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              const { generateSidewayCertification } = await import('@/lib/pdf-sideway');
-                              await generateSidewayCertification(record);
-                            }}
-                            style={{
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              width: '40px', height: '40px',
-                              background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.2)',
-                              borderRadius: '12px', cursor: 'pointer', fontSize: '1.2rem', transition: 'all 0.2s'
-                            }}
-                            title="Scarica Certificato SIDEWAY"
-                          >
-                            📄
                           </button>
                         )}
                       </div>
