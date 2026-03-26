@@ -110,18 +110,11 @@ export async function generateSidewayCertification(record: any) {
         const conclusionText = "Si dichiara altresì che l’installazione è stata controllata con esito positivo ai fini della sicurezza e funzionalità.";
         y = drawWrappedText(conclusionText, margin, y, colWidth, 10, font);
 
-        // --- DATA E FIRME ---
+        // --- DATA ---
         y -= 30;
         const today = new Date();
         const dateStr = `${today.getDate().toString().padStart(2, '0')} / ${(today.getMonth() + 1).toString().padStart(2, '0')} / ${today.getFullYear()}`;
-        firstPage.drawText(`TREVISO lì ${dateStr}`, { x: margin, y, size: 10, font });
-
-        y -= 30;
-        firstPage.drawText('__________________', { x: margin, y, size: 10, font });
-        firstPage.drawText('__________________', { x: width - margin - 110, y, size: 10, font });
-        y -= 12;
-        firstPage.drawText('Per il Cliente', { x: margin + 10, y, size: 9, font });
-        firstPage.drawText("L'installatore", { x: width - margin - 100, y, size: 9, font });
+        firstPage.drawText(`TREVISO lì ${dateStr}`, { x: margin, y: y, size: 10, font });
 
         // 3. Salva e Avvia Download
         const pdfBytes = await pdfDoc.save();
