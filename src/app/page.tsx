@@ -527,6 +527,25 @@ export default function Home() {
                             🎟️
                           </button>
                         )}
+                        {/* Download SIDEWAY */}
+                        {record.lavorazione_eseguita?.toLowerCase().includes('sideway') && (
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const { generateSidewayCertification } = await import('@/lib/pdf-sideway');
+                              await generateSidewayCertification(record);
+                            }}
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              width: '40px', height: '40px',
+                              background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.2)',
+                              borderRadius: '12px', cursor: 'pointer', fontSize: '1.2rem', transition: 'all 0.2s'
+                            }}
+                            title="Scarica Certificato SIDEWAY"
+                          >
+                            📄
+                          </button>
+                        )}
                       </div>
                     )}
                     
