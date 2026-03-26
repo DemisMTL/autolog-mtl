@@ -428,6 +428,45 @@ export default function NewRecord() {
                             {isSaving ? '⏳ Salvataggio...' : '✅ Salva Intervento'}
                         </button>
                     </div>
+
+                    {/* Bottone Anteprima specifico per SIDEWAY */}
+                    {reviewData.lavorazione_eseguita?.toLowerCase().includes('sideway') && (
+                        <div style={{ marginTop: '8px' }}>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    try {
+                                        const { generateSidewayCertification } = await import('@/lib/pdf-sideway');
+                                        await generateSidewayCertification({
+                                            ...reviewData,
+                                            timestamp: new Date().toISOString()
+                                        });
+                                    } catch (err) {
+                                        alert("Errore durante la generazione dell'anteprima.");
+                                    }
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    borderRadius: '16px',
+                                    background: 'rgba(56, 189, 248, 0.1)',
+                                    color: 'var(--accent)',
+                                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                📄 Scarica Anteprima Certificato
+                            </button>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '4px' }}>
+                                Puoi scaricare il certificato ora o attendere il download automatico al salvataggio.
+                            </p>
+                        </div>
+                    )}
                 </section>
             </main>
         );

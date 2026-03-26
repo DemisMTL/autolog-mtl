@@ -1,86 +1,146 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 /**
- * Genera il certificato PDF basato sul file originale (DEMO) sovrascrivendo i dati.
- * @param record Il record dell'intervento con i dati nuovi
+ * Genera il certificato PDF completo basandosi sul template con sola intestazione.
+ * Scrive tutto il testo della dichiarazione e i dati dinamici.
  */
 export async function generateSidewayCertification(record: any) {
-    // 1. Carica il template originale dalla cartella public
-    const url = '/sideway_template.pdf';
-    console.log("Fetching PDF template from:", url);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Fallito caricamento template PDF: ${res.status}`);
-    const existingPdfBytes = await res.arrayBuffer();
-    console.log("Template PDF caricato con successo, dimensione:", existingPdfBytes.byteLength);
+    try {
+        console.log("Inizio generazione PDF Alta Fedeltà...");
+        
+        // 1. Carica il template con sola intestazione
+        const url = '/sideway_template.pdf';
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Template non trovato: ${res.status}`);
+        const existingPdfBytes = await res.arrayBuffer();
 
-    // 2. Carica il documento
-    const pdfDoc = await PDFDocument.load(existingPdfBytes);
-    const pages = pdfDoc.getPages();
-    const firstPage = pages[0];
-    const { width, height } = firstPage.getSize();
+        const pdfDoc = await PDFDocument.load(existingPdfBytes);
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+        const { width, height } = firstPage.getSize();
 
-    // 3. Carica il font
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        // 2. Carica i font
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // Funzione helper per "sbiancare" e scrivere sopra
-    const replaceText = (newText: string, x: number, y: number, w: number, h: number, isBold = false) => {
-        // Disegna un rettangolo bianco per coprire il vecchio testo
-        firstPage.drawRectangle({
-            x: x - 1,
-            y: y - 2,
-            width: w + 2,
-            height: h + 4,
-            color: rgb(1, 1, 1),
-        });
-        // Scrive il nuovo testo
-        firstPage.drawText(newText || '—', {
-            x: x,
+        let y = height - 100; // Inizia sotto l'intestazione (circa 35mm dal bordo superiore se height=842)
+        const margin = 50;
+        const colWidth = width - (2 * margin);
+
+        // --- TITOLO ---
+        y -= 30;
+        firstPage.drawText('DICHIARAZIONE DI CORRETTA INSTALLAZIONE SISTEMA SIDEWAY', {
+            x: width / 2 - 210, // Centrato approssimativamente
             y: y,
-            size: 10,
-            font: isBold ? fontBold : font,
+            size: 13,
+            font: fontBold,
             color: rgb(0, 0, 0),
         });
-    };
 
-    // --- COORDINATE ESTIMATE (A4 595x842) ---
-    // Nota: Le coordinate Y partono dal basso (0)
-    // AROSIO si trova circa a metà altezza nel testo
-    
-    // 1. Cliente (Ditta)
-    // "sui mezzi della ditta AROSIO qui elencati"
-    // Supponiamo sia intorno a Y=600 (dal basso)
-    // Dovrò fare dei test per centrarlo bene.
-    replaceText(record.cliente || 'N/A', 112, 638, 150, 12, true);
+        // --- INTRO TESTO ---
+        y -= 40;
+        const introText = `Il sottoscritto EDOARDO ZAGO, nato il 05/03/1988 a ISOLA DELLA SCALA (VR) e residente a TREVENZUOLO (VR) in Via SANT’EUROSIA n. 12/C Codice Fiscale ZGADRD88C05E349V, della ditta MECTRONIC LAB con sede a VERONA (VR) in Via GIUSEPPE SIRTORI n. 5/A CAP 37128 P.IVA: 04826920235 e Codice Fiscale: 04826920235`;
+        
+        const drawWrappedText = (text: string, x: number, currentY: number, maxWidth: number, fontSize: number, currentFont: any) => {
+            const words = text.split(' ');
+            let line = '';
+            let lineY = currentY;
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const testWidth = currentFont.widthOfTextAtSize(testLine, fontSize);
+                if (testWidth > maxWidth && n > 0) {
+                    firstPage.drawText(line, { x, y: lineY, size: fontSize, font: currentFont });
+                    line = words[n] + ' ';
+                    lineY -= fontSize + 5;
+                } else {
+                    line = testLine;
+                }
+            }
+            firstPage.drawText(line, { x, y: lineY, size: fontSize, font: currentFont });
+            return lineY - (fontSize + 10);
+        };
 
-    // 2. Tabella Dati (Targa, Telaio, Seriale)
-    // FY465DJ (Targa)
-    replaceText(record.targa || '—', 58, 597, 60, 12);
-    
-    // Telaio
-    replaceText(record.telaio || '—', 145, 597, 160, 12);
-    
-    // Seriale Dispositivo
-    replaceText(record.seriale_centralina || '—', 415, 597, 150, 12);
+        y = drawWrappedText(introText, margin, y, colWidth, 10, font);
 
-    // 3. Data (TREVISO lì 09/09/2024)
-    const today = new Date();
-    const dateStr = `${today.getDate().toString().padStart(2, '0')} / ${(today.getMonth() + 1).toString().padStart(2, '0')} / ${today.getFullYear()}`;
-    replaceText(dateStr, 125, 239, 80, 12);
+        // --- DICHIARA ---
+        y -= 10;
+        firstPage.drawText('DICHIARA:', { x: margin, y, size: 11, font: fontBold });
+        y -= 15;
+        
+        const dichiaraText = `di aver effettuato l’installazione di dispositivi di rilevazione dell’angolo cieco, sui mezzi della ditta ${record.cliente || 'AROSIO'} qui elencati:`;
+        y = drawWrappedText(dichiaraText, margin, y, colWidth, 10, font);
 
-    // 4. Se vogliamo cambiare anche il Tecnico (opzionale)
-    // replaceText(record.tecnico || 'EDOARDO ZAGO', 40, ...);
+        // --- TABELLA DATI ---
+        y -= 15;
+        const tableY = y;
+        firstPage.drawText('Targa mezzo', { x: margin, y, size: 10, font: fontBold });
+        firstPage.drawText('Telaio mezzo', { x: margin + 90, y, size: 10, font: fontBold });
+        firstPage.drawText('Marca dispositivo', { x: margin + 250, y, size: 10, font: fontBold });
+        firstPage.drawText('Matricola Dispositivo', { x: margin + 360, y, size: 10, font: fontBold });
 
-    // 5. Salva e Avvia Download
-    console.log("Salvataggio documento PDF...");
-    const pdfBytes = await pdfDoc.save();
-    console.log("Documento salvato, creazione Blob...");
-    const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Certificato_SIDEWAY_${record.targa || 'VEICOLO'}.pdf`;
-    document.body.appendChild(link); // Importante per alcuni browser
-    link.click();
-    document.body.removeChild(link);
-    console.log("Download avviato tramite click simulato.");
+        y -= 15;
+        firstPage.drawText(record.targa || '—', { x: margin, y, size: 10, font });
+        firstPage.drawText(record.telaio || '—', { x: margin + 90, y, size: 10, font });
+        firstPage.drawText('SIDEWAY', { x: margin + 250, y, size: 10, font });
+        firstPage.drawText(record.seriale_centralina || '—', { x: margin + 360, y, size: 10, font });
+
+        // --- ALTRESI DICHIARA ---
+        y -= 30;
+        firstPage.drawText('Altresì dichiara :', { x: margin, y, size: 10, font: fontBold });
+        y -= 15;
+
+        const bulletPoints = [
+            "che l’installazione è fatta a regola d’arte e secondo le norme vigenti ;",
+            "che l’installazione non compromette la conformità del bene su cui avviene ed è conforme alle prescrizioni applicabili al momento dell’installazione;",
+            "che l’installazione non compromette la garanzia del bene su cui avviene;",
+            "che l’installazione è fatta in osservanza delle istruzioni d’uso e raccomandazioni del fabbricante del bene su cui avviene;",
+            "che i dispositivi ed i componenti installati rispettano le normative applicabili per la destinazione d’uso per cui avviene l’installazione;",
+            "che i dispositivi ed i componenti installati non compromettono la conformità del bene su cui vengono installati secondo le prescrizioni applicabili al momento dell’installazione;",
+            "che i dispositivi ed i componenti installati non compromettono la garanzia del bene su cui vengono installati;",
+            "che i dispositivi ed i componenti installati sono compatibili con le istruzioni d’uso e raccomandazioni del fabbricante del bene su cui vengono installati."
+        ];
+
+        bulletPoints.forEach(point => {
+            y = drawWrappedText(`• ${point}`, margin, y, colWidth, 9, font);
+            y += 5; // Spazio extra tra i punti
+        });
+
+        // --- CONCLUSIONE ---
+        y -= 10;
+        const conclusionText = "Si dichiara altresì che l’installazione è stata controllata con esito positivo ai fini della sicurezza e funzionalità.";
+        y = drawWrappedText(conclusionText, margin, y, colWidth, 10, font);
+
+        // --- DATA E FIRME ---
+        y -= 30;
+        const today = new Date();
+        const dateStr = `${today.getDate().toString().padStart(2, '0')} / ${(today.getMonth() + 1).toString().padStart(2, '0')} / ${today.getFullYear()}`;
+        firstPage.drawText(`TREVISO lì ${dateStr}`, { x: margin, y, size: 10, font });
+
+        y -= 30;
+        firstPage.drawText('__________________', { x: margin, y, size: 10, font });
+        firstPage.drawText('__________________', { x: width - margin - 110, y, size: 10, font });
+        y -= 12;
+        firstPage.drawText('Per il Cliente', { x: margin + 10, y, size: 9, font });
+        firstPage.drawText("L'installatore", { x: width - margin - 100, y, size: 9, font });
+
+        // 3. Salva e Avvia Download
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
+        const downloadUrl = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `Certificato_SIDEWAY_${record.targa || 'Veicolo'}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(downloadUrl);
+        }, 100);
+
+    } catch (err) {
+        console.error("Errore fatale generazione PDF:", err);
+        throw err;
+    }
 }
