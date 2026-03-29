@@ -31,35 +31,35 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Nessuna immagine fornita." }, { status: 400 });
         }
 
-        // 1. Controllo Continuità Cliente (raggio 200m dallo stesso giorno)
+        // 1. IMPROVED: Controllo Continuità Cliente (cerca tra gli ultimi 50 record nelle ultime 12 ore)
         let clienteBloccato: string | null = null;
         let fornitoreBloccato: string | null = null;
         if (location) {
             try {
                 await ensureTable();
                 const sql = getDb();
-                const lastRecord = await sql`
+                // Recupera gli ultimi 50 record con coordinate e cliente (limite temporale 12h per performance e coerenza)
+                const recentRecords = await sql`
                     SELECT lat, lng, cliente, timestamp, fornitore_servizio
                     FROM records
                     WHERE lat IS NOT NULL AND lng IS NOT NULL AND cliente IS NOT NULL
-                    ORDER BY timestamp DESC LIMIT 1
+                    AND timestamp > NOW() - INTERVAL '12 hours'
+                    ORDER BY timestamp DESC LIMIT 50
                 `;
-                if (lastRecord.length > 0) {
-                    const rec = lastRecord[0];
-                    const now = new Date();
-                    const recTime = new Date(rec.timestamp);
-                    // Controllo se è della stessa giornata e se la distanza è <= 200m
-                    if (now.getDate() === recTime.getDate() && now.getMonth() === recTime.getMonth() && now.getFullYear() === recTime.getFullYear()) {
-                        const dist = haversineMeters(rec.lat, rec.lng, location.lat, location.lng);
-                        if (dist <= 200) {
-                            clienteBloccato = rec.cliente;
-                            fornitoreBloccato = rec.fornitore_servizio;
-                            console.log(`Continuità Cliente/Fornitore attivata: distanza ${dist.toFixed(0)}m, cliente: ${clienteBloccato}`);
-                        }
+
+                console.log(`[CONTINUITY] Analizzando ${recentRecords.length} record recenti per prossimità...`);
+
+                for (const rec of recentRecords) {
+                    const dist = haversineMeters(rec.lat, rec.lng, location.lat, location.lng);
+                    if (dist <= 200) {
+                        clienteBloccato = rec.cliente;
+                        fornitoreBloccato = rec.fornitore_servizio;
+                        console.log(`✅ [CONTINUITY] Trovato match entro raggio 200m! Distanza: ${dist.toFixed(0)}m, Cliente: ${clienteBloccato}`);
+                        break; // Trovato il più recente nelle vicinanze, fermati
                     }
                 }
             } catch (err) {
-                console.error("Errore fetch continuità cliente:", err);
+                console.error("❌ Errore fetch continuità cliente:", err);
             }
         }
 
