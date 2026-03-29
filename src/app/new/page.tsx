@@ -394,6 +394,7 @@ export default function NewRecord() {
                         >
                             <option value="">-- Seleziona o Nessuno --</option>
                             <option value="GEOTAB">GEOTAB</option>
+                            <option value="SAMSARA">SAMSARA</option>
                             <option value="W.A.Y.">W.A.Y.</option>
                             <option value="WEBFLEET">WEBFLEET</option>
                             <option value="FLOTTAWEB">FLOTTAWEB</option>
