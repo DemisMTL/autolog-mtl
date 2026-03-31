@@ -290,7 +290,9 @@ export default function ReportPage() {
     const [startDate, setStartDate] = useState(today);
     const [endDate, setEndDate] = useState(today);
     const [clusters, setClusters] = useState<LocationCluster[]>([]);
+    const [filterMode, setFilterMode] = useState<'cliente' | 'fornitore'>('cliente');
     const [clientFilter, setClientFilter] = useState('Tutti');
+    const [providerFilter, setProviderFilter] = useState('Tutti');
     const [isLoading, setIsLoading] = useState(false);
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
     const [isGeneratingSingle, setIsGeneratingSingle] = useState(false);
@@ -336,13 +338,20 @@ export default function ReportPage() {
             const endStr = new Date(endDate + 'T12:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
             label = `dal ${startStr} al ${endStr}`;
         }
-        await generatePDF(clusters, label, clientFilter);
+        // Adattiamo il filtro PDF al modo corrente
+        const pdfFilter = filterMode === 'cliente' ? clientFilter : (providerFilter !== 'Tutti' ? `Fornitore: ${providerFilter}` : 'Tutti');
+        const filteredForPDF = clusters.map(c => ({
+            ...c,
+            records: c.records.filter(filterRecord)
+        })).filter(c => c.records.length > 0);
+        await generatePDF(filteredForPDF, label, pdfFilter);
         setIsGeneratingPDF(false);
     };
 
     const handleDownloadCSV = () => {
         const dateLabel = startDate === endDate ? startDate : `${startDate}_to_${endDate}`;
-        downloadCSV(clusters, clientFilter, dateLabel);
+        const csvFilter = filterMode === 'cliente' ? clientFilter : (providerFilter !== 'Tutti' ? `FORNITORE_${providerFilter}` : 'Tutti');
+        downloadCSV(clusters.map(c => ({ ...c, records: c.records.filter(filterRecord) })).filter(c => c.records.length > 0), csvFilter, dateLabel);
     };
 
     const handleSinglePDF = async (rec: SheetRecord, loc: string) => {
@@ -351,12 +360,25 @@ export default function ReportPage() {
         setIsGeneratingSingle(false);
     };
 
-    const uniqueClients = Array.from(new Set(clusters.flatMap(c => c.records).map(r => r.cliente).filter(Boolean))) as string[];
+    const uniqueClients = Array.from(new Set(
+        clusters.flatMap(c => c.records).map(r => r.cliente).filter(Boolean)
+    )) as string[];
+
+    const uniqueProviders = Array.from(new Set(
+        clusters.flatMap(c => c.records).map(r => r.fornitore_servizio).filter(Boolean)
+    )) as string[];
+
+    // Filtro attivo in base al modo selezionato
+    const activeFilter = filterMode === 'cliente' ? clientFilter : providerFilter;
+    const filterRecord = (r: SheetRecord) => {
+        if (filterMode === 'cliente') return clientFilter === 'Tutti' || r.cliente === clientFilter;
+        return providerFilter === 'Tutti' || r.fornitore_servizio === providerFilter;
+    };
 
     // Filtro cluster per UI
     const filteredClustersForUI = clusters.map(c => ({
         ...c,
-        records: c.records.filter(r => clientFilter === 'Tutti' || r.cliente === clientFilter)
+        records: c.records.filter(filterRecord)
     })).filter(c => c.records.length > 0);
 
     const totalInterventions = filteredClustersForUI.reduce((s, c) => s + c.records.length, 0);
@@ -386,7 +408,7 @@ export default function ReportPage() {
                             <input
                                 type="date"
                                 value={startDate}
-                                onChange={e => { setStartDate(e.target.value); setClientFilter('Tutti'); }}
+                                onChange={e => { setStartDate(e.target.value); setClientFilter('Tutti'); setProviderFilter('Tutti'); }}
                                 style={{
                                     background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)',
                                     color: 'var(--text-primary)', borderRadius: '12px', padding: '10px 14px',
@@ -398,7 +420,7 @@ export default function ReportPage() {
                                 type="date"
                                 value={endDate}
                                 min={startDate}
-                                onChange={e => { setEndDate(e.target.value); setClientFilter('Tutti'); }}
+                                onChange={e => { setEndDate(e.target.value); setClientFilter('Tutti'); setProviderFilter('Tutti'); }}
                                 style={{
                                     background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)',
                                     color: 'var(--text-primary)', borderRadius: '12px', padding: '10px 14px',
@@ -407,9 +429,32 @@ export default function ReportPage() {
                             />
                         </div>
 
-                        {uniqueClients.length > 0 && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <span style={{ fontSize: '1.2rem', color: 'var(--accent)' }}>🏢</span>
+                        {/* Toggle Cliente / Fornitore + Filtro */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                            {/* Bottoni toggle */}
+                            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '3px', border: '1px solid rgba(255,255,255,0.07)' }}>
+                                <button
+                                    onClick={() => setFilterMode('cliente')}
+                                    style={{
+                                        padding: '7px 14px', borderRadius: '9px', border: 'none', cursor: 'pointer',
+                                        fontWeight: '600', fontSize: '0.88rem', transition: 'all 0.2s',
+                                        background: filterMode === 'cliente' ? 'rgba(211,47,47,0.3)' : 'transparent',
+                                        color: filterMode === 'cliente' ? 'var(--accent)' : 'var(--text-secondary)',
+                                    }}
+                                >🏢 Cliente</button>
+                                <button
+                                    onClick={() => setFilterMode('fornitore')}
+                                    style={{
+                                        padding: '7px 14px', borderRadius: '9px', border: 'none', cursor: 'pointer',
+                                        fontWeight: '600', fontSize: '0.88rem', transition: 'all 0.2s',
+                                        background: filterMode === 'fornitore' ? 'rgba(99,102,241,0.3)' : 'transparent',
+                                        color: filterMode === 'fornitore' ? '#a5b4fc' : 'var(--text-secondary)',
+                                    }}
+                                >📡 Fornitore</button>
+                            </div>
+
+                            {/* Select dinamico */}
+                            {filterMode === 'cliente' && uniqueClients.length > 0 && (
                                 <select
                                     value={clientFilter}
                                     onChange={e => setClientFilter(e.target.value)}
@@ -424,8 +469,25 @@ export default function ReportPage() {
                                         <option key={idx} value={client} style={{ color: 'black' }}>{client}</option>
                                     ))}
                                 </select>
-                            </div>
-                        )}
+                            )}
+
+                            {filterMode === 'fornitore' && uniqueProviders.length > 0 && (
+                                <select
+                                    value={providerFilter}
+                                    onChange={e => setProviderFilter(e.target.value)}
+                                    style={{
+                                        background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)',
+                                        color: 'var(--text-primary)', borderRadius: '12px', padding: '10px 14px',
+                                        fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none'
+                                    }}
+                                >
+                                    <option value="Tutti" style={{ color: 'black' }}>Tutti i fornitori ({clusters.reduce((s, c) => s + c.records.length, 0)})</option>
+                                    {uniqueProviders.map((p, idx) => (
+                                        <option key={idx} value={p} style={{ color: 'black' }}>{p}</option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
                     </div>
 
                     {totalInterventions > 0 && (
@@ -477,7 +539,9 @@ export default function ReportPage() {
                         </div>
                         <div style={{ flex: 1, background: 'rgba(0,0,0,0.25)', padding: '20px', borderRadius: '16px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.04)' }}>
                             <span style={{ display: 'block', fontSize: '2rem', fontWeight: 'bold', color: 'var(--success)' }}>{totalInterventions}</span>
-                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>INTERVENTI {clientFilter !== 'Tutti' && `(${clientFilter})`}</span>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
+                                INTERVENTI {activeFilter !== 'Tutti' && `(${activeFilter})`}
+                            </span>
                         </div>
                     </section>
 
