@@ -338,20 +338,22 @@ export default function ReportPage() {
             const endStr = new Date(endDate + 'T12:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
             label = `dal ${startStr} al ${endStr}`;
         }
-        // Adattiamo il filtro PDF al modo corrente
-        const pdfFilter = filterMode === 'cliente' ? clientFilter : (providerFilter !== 'Tutti' ? `Fornitore: ${providerFilter}` : 'Tutti');
+        // Pre-filtra i cluster, poi passa 'Tutti' per evitare il doppio filtro interno
         const filteredForPDF = clusters.map(c => ({
             ...c,
             records: c.records.filter(filterRecord)
         })).filter(c => c.records.length > 0);
-        await generatePDF(filteredForPDF, label, pdfFilter);
+        const displayLabel = filterMode === 'cliente' ? clientFilter : (providerFilter !== 'Tutti' ? providerFilter : 'Tutti');
+        await generatePDF(filteredForPDF, label, 'Tutti'); // 'Tutti' per disattivare il filtro interno (già applicato)
         setIsGeneratingPDF(false);
     };
 
     const handleDownloadCSV = () => {
         const dateLabel = startDate === endDate ? startDate : `${startDate}_to_${endDate}`;
-        const csvFilter = filterMode === 'cliente' ? clientFilter : (providerFilter !== 'Tutti' ? `FORNITORE_${providerFilter}` : 'Tutti');
-        downloadCSV(clusters.map(c => ({ ...c, records: c.records.filter(filterRecord) })).filter(c => c.records.length > 0), csvFilter, dateLabel);
+        // Pre-filtra i cluster, poi passa 'Tutti' per evitare il doppio filtro interno
+        const filteredForCSV = clusters.map(c => ({ ...c, records: c.records.filter(filterRecord) })).filter(c => c.records.length > 0);
+        const filenamePart = filterMode === 'cliente' ? clientFilter : (providerFilter !== 'Tutti' ? `FORNITORE_${providerFilter}` : 'Tutti');
+        downloadCSV(filteredForCSV, 'Tutti', dateLabel); // 'Tutti' per disattivare il filtro interno
     };
 
     const handleSinglePDF = async (rec: SheetRecord, loc: string) => {
