@@ -107,6 +107,81 @@ function TicketPopup({ commessa, signedUrl, onClose }: { commessa: string, signe
   );
 }
 
+// ─── Modale di anteprima (sola lettura) ─────────────────────────────────────
+function PreviewModal({ record, onClose, onEdit }: {
+  record: InterventRecord;
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  const fields: { label: string; value: string | null | undefined; mono?: boolean }[] = [
+    { label: '🏢 Cliente', value: record.cliente },
+    { label: '🚛 Targa', value: record.targa, mono: true },
+    { label: '🔢 N. Telaio', value: record.telaio, mono: true },
+    { label: '🔌 Seriale Centralina', value: record.seriale_centralina, mono: true },
+    { label: '🚗 Tipo Veicolo', value: record.tipo_veicolo },
+    { label: 'Marca Veicolo', value: record.marca_veicolo },
+    { label: '📅 Anno Immatricolazione', value: record.anno_immatricolazione },
+    { label: '#️⃣ N. Veicolo Aziendale', value: record.numero_veicolo },
+    { label: '⏱️ Tachigrafo', value: record.marca_modello_tachigrafo },
+    { label: '📡 Fornitore Servizio', value: record.fornitore_servizio },
+    { label: '👤 Tecnico', value: record.tecnico },
+    { label: '🔧 Lavorazione', value: record.lavorazione_eseguita },
+    { label: '📝 Note', value: record.note },
+  ].filter(f => f.value && String(f.value).trim().length > 0);
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 1000,
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      backdropFilter: 'blur(6px)'
+    }} onClick={onClose}>
+      <div style={{
+        background: 'linear-gradient(160deg, #1e293b, #0f172a)',
+        borderRadius: '24px 24px 0 0', padding: '24px', width: '100%', maxWidth: '600px',
+        border: '1px solid rgba(255,255,255,0.08)', maxHeight: '85vh', overflowY: 'auto',
+        display: 'flex', flexDirection: 'column', gap: '0'
+      }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div>
+            <h2 style={{ fontSize: '1.2rem', margin: 0 }}>
+              {record.targa || record.tipo_veicolo || 'Intervento'}
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>
+              {new Date(record.timestamp).toLocaleString('it-IT', { dateStyle: 'long', timeStyle: 'short' })}
+            </p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
+        </div>
+
+        {/* Campi valorizzati */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+          {fields.map(({ label, value, mono }) => (
+            <div key={label} style={{
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: '12px', padding: '12px 16px'
+            }}>
+              <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+              <span style={{ color: 'white', fontFamily: mono ? 'monospace' : 'inherit', fontSize: mono ? '0.95rem' : '1rem', letterSpacing: mono ? '0.05em' : 'normal' }}>{value}</span>
+            </div>
+          ))}
+          {fields.length === 0 && (
+            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '24px 0' }}>Nessun dato registrato.</p>
+          )}
+        </div>
+
+        {/* Bottone modifica */}
+        <button
+          onClick={() => { onClose(); onEdit(); }}
+          style={{ width: '100%', padding: '14px', borderRadius: '16px', background: 'rgba(211,47,47,0.15)', border: '1px solid rgba(211,47,47,0.3)', color: 'var(--accent)', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
+        >
+          ✏️ Modifica Scheda
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Modale di modifica ───────────────────────────────────────────────────────
 function EditModal({ record, onSave, onClose }: {
   record: InterventRecord;
@@ -216,6 +291,7 @@ export default function Home() {
   const [monthCount, setMonthCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState<InterventRecord | null>(null);
+  const [previewRecord, setPreviewRecord] = useState<InterventRecord | null>(null);
 
   const [showTicketInfo, setShowTicketInfo] = useState<{ commessa: string, signedUrl: string | null } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -348,6 +424,14 @@ export default function Home() {
       <div className="bg-glow"></div>
       <div className="bg-glow-2"></div>
 
+      {previewRecord && (
+        <PreviewModal
+          record={previewRecord}
+          onClose={() => setPreviewRecord(null)}
+          onEdit={() => setEditingRecord(previewRecord)}
+        />
+      )}
+
       {editingRecord && (
         <EditModal
           record={editingRecord}
@@ -461,7 +545,7 @@ export default function Home() {
             {records.slice(0, 30).map((record) => {
               const { day, time } = formatDate(record.timestamp);
               return (
-                <div key={record.id} className="record-card">
+                <div key={record.id} className="record-card" style={{ cursor: 'pointer' }} onClick={() => setPreviewRecord(record)}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', minWidth: '70px' }}>
                     <div className="record-meta" style={{ textAlign: 'center', lineHeight: '1.2' }}>
                       <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{day}</span><br />
