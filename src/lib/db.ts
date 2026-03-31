@@ -43,4 +43,5 @@ export async function ensureTable() {
   await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS tecnico TEXT`;
   await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS is_matched BOOLEAN DEFAULT FALSE`;
   await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS matched_ticket TEXT`;
+  await sql`ALTER TABLE records ADD COLUMN IF NOT EXISTS tipo_lavorazione TEXT`;
 }

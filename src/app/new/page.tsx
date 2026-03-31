@@ -192,6 +192,7 @@ export default function NewRecord() {
             tipo_veicolo: reviewData?.tipo_veicolo || null,
             numero_veicolo: reviewData?.numero_veicolo || null,
             lavorazione_eseguita: reviewData?.lavorazione_eseguita || null,
+            tipo_lavorazione: reviewData?.tipo_lavorazione || null,
             note: noteText,
             lat: location?.lat ?? null,
             lng: location?.lng ?? null,
@@ -403,6 +404,28 @@ export default function NewRecord() {
                             <option value="MULTIPROTEXION">MULTIPROTEXION</option>
                             <option value="ALTRO">ALTRO</option>
                         </select>
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.9rem', color: '#f59e0b', marginBottom: '8px' }}>🔧 Tipo di Lavorazione</label>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {['Nuova installazione', 'Assistenza', 'Smontaggio'].map(tipo => (
+                                <button
+                                    key={tipo}
+                                    type="button"
+                                    onClick={() => setReviewData({ ...reviewData, tipo_lavorazione: tipo })}
+                                    style={{
+                                        padding: '10px 18px', borderRadius: '12px', border: '1px solid',
+                                        cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem', transition: 'all 0.2s',
+                                        borderColor: reviewData.tipo_lavorazione === tipo ? '#f59e0b' : 'rgba(255,255,255,0.1)',
+                                        background: reviewData.tipo_lavorazione === tipo ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.04)',
+                                        color: reviewData.tipo_lavorazione === tipo ? '#f59e0b' : 'var(--text-secondary)',
+                                    }}
+                                >
+                                    {tipo === 'Nuova installazione' ? '🔌' : tipo === 'Assistenza' ? '🔧' : '📦'} {tipo}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <div>

@@ -19,6 +19,7 @@ const recordSchema = z.object({
   marca_modello_tachigrafo: z.string().optional().nullable(),
   fornitore_servizio: z.string().optional().nullable(),
   tecnico: z.string().optional().nullable(),
+  tipo_lavorazione: z.string().optional().nullable(),
 });
 
 export async function POST(req: NextRequest) {
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
     const {
       targa, tipo_veicolo, numero_veicolo,
       lavorazione_eseguita, note, lat, lng, timestamp,
-      telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico
+      telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, tipo_lavorazione
     } = result_zod.data;
 
     await ensureTable();
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
         timestamp, targa, tipo_veicolo, numero_veicolo,
         lavorazione_eseguita, note, lat, lng,
         telaio, seriale_centralina, marca_veicolo, cliente,
-        anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico
+        anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, tipo_lavorazione
       )
       VALUES (
         ${timestamp || new Date().toISOString()},
@@ -62,7 +63,8 @@ export async function POST(req: NextRequest) {
         ${anno_immatricolazione || null},
         ${marca_modello_tachigrafo || null},
         ${fornitore_servizio ?? null},
-        ${tecnico ?? null}
+        ${tecnico ?? null},
+        ${tipo_lavorazione || null}
       ) RETURNING id
     `;
 

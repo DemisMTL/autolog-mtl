@@ -21,6 +21,7 @@ interface SheetRecord {
     marca_modello_tachigrafo?: string | null;
     fornitore_servizio?: string | null;
     tecnico?: string | null;
+    tipo_lavorazione?: string | null;
     is_matched?: boolean;
 }
 
@@ -100,22 +101,17 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
     }
 }
 
-// ─── Generazione PDF Multiplo ───────────────────────────────────────────────
-async function generatePDF(clusters: LocationCluster[], dateLabel: string, clientFilter: string) {
+// ─── Generazione PDF unica tabella flat ───────────────────────────────────────
+async function generatePDF(clusters: LocationCluster[], dateLabel: string, reportLabel: string) {
     const { jsPDF } = await import('jspdf');
     const autoTable = (await import('jspdf-autotable')).default;
 
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Filtriamo i record prima di stamparli, in base al cliente.
-    // Puliamo anche i cluster rimasti senza record
-    const filteredClusters = clusters.map(c => ({
-        ...c,
-        records: c.records.filter(r => clientFilter === 'Tutti' || r.cliente === clientFilter)
-    })).filter(c => c.records.length > 0);
-
-    const totalInterventions = filteredClusters.reduce((s, c) => s + c.records.length, 0);
+    // Tutti i record dei cluster (già filtrati prima della chiamata)
+    const allRecords = clusters.flatMap(c => c.records)
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
     // Intestazione
     doc.setFillColor(15, 23, 42);
@@ -123,68 +119,46 @@ async function generatePDF(clusters: LocationCluster[], dateLabel: string, clien
     doc.setTextColor(248, 250, 252);
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text(`AutoLog — Report${clientFilter !== 'Tutti' ? ` per ${clientFilter}` : ' Giornaliero'}`, 14, 14);
+    doc.text(`AutoLog — Report${reportLabel !== 'Tutti' ? ` — ${reportLabel}` : ' Completo'}`, 14, 14);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Data: ${dateLabel}  |  Ubicazioni: ${filteredClusters.length}  |  Totale interventi: ${totalInterventions}`, 14, 23);
+    doc.text(`Periodo: ${dateLabel}  |  Totale interventi: ${allRecords.length}`, 14, 23);
 
-    let y = 38;
+    const tableData = allRecords.map(r => [
+        new Date(r.timestamp).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        r.targa || '—',
+        r.cliente || '—',
+        r.tipo_lavorazione || '—',
+        `${r.marca_veicolo || ''} ${r.anno_immatricolazione ? `(${r.anno_immatricolazione})` : ''}`.trim() || '—',
+        r.marca_modello_tachigrafo || '—',
+        r.fornitore_servizio || '—',
+        `${r.telaio || '—'} / ${r.seriale_centralina || '—'}`,
+        r.lavorazione_eseguita || r.note || '—',
+    ]);
 
-    for (const cluster of filteredClusters) {
-        // Titolo sezione ubicazione
-        doc.setTextColor(15, 23, 42);
-        doc.setFontSize(13);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`📍 ${cluster.locationName}`, 14, y);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(100, 116, 139);
-        doc.text(`${cluster.records.length} intervento/i`, 14, y + 6);
-        y += 12;
+    autoTable(doc, {
+        startY: 38,
+        head: [['Data', 'Targa', 'Cliente', 'Tipo Lav.', 'Marca (Anno)', 'Tachigrafo', 'Fornitore', 'Telaio / SN', 'Descrizione']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [30, 41, 59], textColor: [248, 250, 252] },
+        styles: { fontSize: 7.5, cellPadding: 2, overflow: 'linebreak' },
+        columnStyles: {
+            0: { cellWidth: 22 },
+            1: { cellWidth: 20 },
+            2: { cellWidth: 28 },
+            3: { cellWidth: 24 },
+            4: { cellWidth: 24 },
+            5: { cellWidth: 22 },
+            6: { cellWidth: 20 },
+            7: { cellWidth: 36 },
+            8: { cellWidth: 'auto' },
+        },
+        margin: { left: 14, right: 14 },
+    });
 
-        // Tabella record
-        const tableData = cluster.records.map(r => [
-            new Date(r.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
-            r.targa || '—',
-            r.cliente || '—',
-            `${r.marca_veicolo || ''} ${r.anno_immatricolazione ? `(${r.anno_immatricolazione})` : ''}`.trim() || '—',
-            r.marca_modello_tachigrafo || '—',
-            r.fornitore_servizio || '—',
-            `${r.telaio || '—'} / ${r.seriale_centralina || '—'}`,
-            r.tipo_veicolo || '—',
-            r.tecnico || '—',
-            r.lavorazione_eseguita || r.note || '—',
-        ]);
-
-        autoTable(doc, {
-            startY: y,
-            head: [['Orario', 'Targa', 'Cliente', 'Marca (Anno)', 'Tachigrafo', 'Forn/Tec', 'Telaio / SN', 'V. Tipo', 'Lavorazione']],
-            body: tableData,
-            theme: 'striped',
-            headStyles: { fillColor: [30, 41, 59], textColor: [248, 250, 252] },
-            styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
-            columnStyles: {
-                0: { cellWidth: 15 },
-                1: { cellWidth: 20 },
-                2: { cellWidth: 20 },
-                3: { cellWidth: 20 },
-                4: { cellWidth: 20 },
-                5: { cellWidth: 20 },
-                6: { cellWidth: 35 },
-                7: { cellWidth: 15 },
-                8: { cellWidth: 'auto' },
-            },
-            margin: { left: 14, right: 14 },
-        });
-
-        y = (doc as any).lastAutoTable.finalY + 12;
-        if (y > 270) {
-            doc.addPage();
-            y = 20;
-        }
-    }
-
-    doc.save(`AutoLog_Report_${clientFilter !== 'Tutti' ? clientFilter.replace(/[^a-z0-9]/gi, '_') : 'Globale'}_${dateLabel.replace(/\//g, '-')}.pdf`);
+    const safeLabel = reportLabel !== 'Tutti' ? reportLabel.replace(/[^a-z0-9]/gi, '_') : 'Globale';
+    doc.save(`AutoLog_Report_${safeLabel}_${dateLabel.replace(/\//g, '-')}.pdf`);
 }
 
 // ─── Generazione CSV ──────────────────────────────────────────────────────────
