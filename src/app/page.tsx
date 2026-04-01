@@ -296,6 +296,7 @@ export default function Home() {
   const [showTicketInfo, setShowTicketInfo] = useState<{ commessa: string, signedUrl: string | null } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<string | null>(null);
+  const [showScanModal, setShowScanModal] = useState(false);
 
   const compressImage = (dataUrl: string): Promise<string> =>
     new Promise((resolve) => {
@@ -419,6 +420,61 @@ export default function Home() {
     setEditingRecord(null);
   };
 
+  // ─── Scan Modal ──────────────────────────────────────────────────────────────
+  function ScanModal() {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 2000,
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        backdropFilter: 'blur(8px)'
+      }} onClick={() => setShowScanModal(false)}>
+        <div style={{
+          background: 'linear-gradient(160deg, #1e293b, #0f172a)',
+          borderRadius: '24px 24px 0 0', padding: '28px 24px 40px', width: '100%', maxWidth: '480px',
+          border: '1px solid rgba(255,255,255,0.08)'
+        }} onClick={e => e.stopPropagation()}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.2rem' }}>🔍 Cerca Ticket</h2>
+              <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Fotografa un seriale dispositivo o una targa</p>
+            </div>
+            <button onClick={() => setShowScanModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
+          </div>
+          <div style={{ display: 'flex', gap: '14px' }}>
+            <label style={{ flex: 1, cursor: 'pointer' }}>
+              <input type="file" accept="image/*" capture="environment"
+                onChange={(e) => { setShowScanModal(false); handleScanFile(e); }}
+                style={{ display: 'none' }} />
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+                padding: '24px 16px', borderRadius: '18px',
+                background: 'rgba(211,47,47,0.12)', border: '1px solid rgba(211,47,47,0.3)',
+              }}>
+                <span style={{ fontSize: '2.2rem' }}>📷</span>
+                <span style={{ fontWeight: '600', color: 'var(--accent)', fontSize: '0.95rem' }}>Fotocamera</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', textAlign: 'center' }}>Scatta una foto al seriale o alla targa</span>
+              </div>
+            </label>
+            <label style={{ flex: 1, cursor: 'pointer' }}>
+              <input type="file" accept="image/*"
+                onChange={(e) => { setShowScanModal(false); handleScanFile(e); }}
+                style={{ display: 'none' }} />
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+                padding: '24px 16px', borderRadius: '18px',
+                background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)',
+              }}>
+                <span style={{ fontSize: '2.2rem' }}>🖼️</span>
+                <span style={{ fontWeight: '600', color: '#a5b4fc', fontSize: '0.95rem' }}>Libreria</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', textAlign: 'center' }}>Scegli una foto già scattata</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="app-container">
       <div className="bg-glow"></div>
@@ -440,6 +496,19 @@ export default function Home() {
         />
       )}
 
+      {showScanModal && <ScanModal />}
+
+      {isScanning && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.85)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(8px)', gap: '16px'
+        }}>
+          <span style={{ fontSize: '3rem' }} className="recording-pulse">⏳</span>
+          <p style={{ color: 'white', fontWeight: '600', fontSize: '1.1rem' }}>{scanStatus || 'Analisi in corso...'}</p>
+        </div>
+      )}
+
       <header className="header" style={{ gap: '12px' }}>
         <div style={{ flexShrink: 0 }}>
           <img src="/logo.jpg" alt="MecTronicLab Logo" style={{ height: '56px', objectFit: 'contain', background: 'rgba(255,255,255,0.95)', padding: '6px 16px', borderRadius: '14px' }} />
@@ -447,30 +516,22 @@ export default function Home() {
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1, justifyContent: 'flex-end' }}>
           {/* Cerca/Scan Button */}
-          <label style={{ cursor: 'pointer' }}>
-            <input 
-              type="file" 
-              accept="image/*" 
-              capture="environment" 
-              onChange={handleScanFile} 
-              style={{ display: 'none' }} 
-            />
-            <div style={{
-              width: '56px', height: '56px', borderRadius: '14px', 
-              background: isScanning ? 'var(--accent)' : 'rgba(255,255,255,0.05)', 
+          <button
+            onClick={() => setShowScanModal(true)}
+            disabled={isScanning}
+            style={{
+              width: '56px', height: '56px', borderRadius: '14px',
+              background: isScanning ? 'var(--accent)' : 'rgba(255,255,255,0.05)',
               border: '1px solid rgba(255,255,255,0.1)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backdropFilter: 'blur(8px)', 
-              color: isScanning ? 'white' : 'var(--accent)', 
-              transition: 'all 0.3s ease'
-            }} title="Scansiona Ticket / Cerca">
-              {isScanning ? (
-                <span className="recording-pulse">⏳</span>
-              ) : (
-                <span style={{ fontSize: '1.4rem' }}>📷</span>
-              )}
-            </div>
-          </label>
+              backdropFilter: 'blur(8px)',
+              color: isScanning ? 'white' : 'var(--accent)',
+              transition: 'all 0.3s ease', cursor: 'pointer'
+            }}
+            title="Cerca Ticket per Seriale o Targa"
+          >
+            <span style={{ fontSize: '1.4rem' }}>🔍</span>
+          </button>
 
           {/* Ticket App Link */}
           <a 
