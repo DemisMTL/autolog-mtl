@@ -422,6 +422,39 @@ export default function Home() {
 
   // ─── Scan Modal ──────────────────────────────────────────────────────────────
   function ScanModal() {
+    const [manualInput, setManualInput] = useState('');
+    const [searching, setSearching] = useState(false);
+
+    const handleManualSearch = async () => {
+      const code = manualInput.trim();
+      if (!code) return;
+      setSearching(true);
+      setShowScanModal(false);
+      setIsScanning(true);
+      setScanStatus(`Ricerca: ${code.toUpperCase()}...`);
+      try {
+        const res = await fetch('/api/scan-ticket', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ manualCode: code }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Nessun risultato trovato.');
+        setScanStatus(`Trovato: ${data.code_found}`);
+        setTimeout(() => {
+          setIsScanning(false);
+          setScanStatus(null);
+          setShowTicketInfo({ commessa: data.ticket.commessa, signedUrl: data.ticket.signedUrl });
+        }, 800);
+      } catch (err: any) {
+        alert(err.message);
+        setIsScanning(false);
+        setScanStatus(null);
+      } finally {
+        setSearching(false);
+      }
+    };
+
     return (
       <div style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 2000,
@@ -433,26 +466,66 @@ export default function Home() {
           borderRadius: '24px 24px 0 0', padding: '28px 24px 40px', width: '100%', maxWidth: '480px',
           border: '1px solid rgba(255,255,255,0.08)'
         }} onClick={e => e.stopPropagation()}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: '1.2rem' }}>🔍 Cerca Ticket</h2>
-              <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Fotografa un seriale dispositivo o una targa</p>
+              <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Targa, seriale o foto</p>
             </div>
             <button onClick={() => setShowScanModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
           </div>
+
+          {/* Input manuale */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+            <input
+              type="text"
+              placeholder="Es. AB123CD oppure FMC650-23Q2-..."
+              value={manualInput}
+              onChange={e => setManualInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleManualSearch()}
+              autoFocus
+              style={{
+                flex: 1, padding: '12px 16px', borderRadius: '14px',
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                color: 'white', fontSize: '1rem', fontFamily: 'inherit', outline: 'none',
+                letterSpacing: '0.04em'
+              }}
+            />
+            <button
+              onClick={handleManualSearch}
+              disabled={searching || !manualInput.trim()}
+              style={{
+                padding: '12px 18px', borderRadius: '14px', border: 'none', cursor: 'pointer',
+                background: manualInput.trim() ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
+                color: 'white', fontWeight: '700', fontSize: '1rem', transition: 'all 0.2s',
+                flexShrink: 0
+              }}
+            >
+              {searching ? '⏳' : '→'}
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.07)' }} />
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>oppure scansiona</span>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.07)' }} />
+          </div>
+
+          {/* Fotocamera / Libreria */}
           <div style={{ display: 'flex', gap: '14px' }}>
             <label style={{ flex: 1, cursor: 'pointer' }}>
               <input type="file" accept="image/*" capture="environment"
                 onChange={(e) => { setShowScanModal(false); handleScanFile(e); }}
                 style={{ display: 'none' }} />
               <div style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
-                padding: '24px 16px', borderRadius: '18px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                padding: '18px 14px', borderRadius: '18px',
                 background: 'rgba(211,47,47,0.12)', border: '1px solid rgba(211,47,47,0.3)',
               }}>
-                <span style={{ fontSize: '2.2rem' }}>📷</span>
-                <span style={{ fontWeight: '600', color: 'var(--accent)', fontSize: '0.95rem' }}>Fotocamera</span>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', textAlign: 'center' }}>Scatta una foto al seriale o alla targa</span>
+                <span style={{ fontSize: '2rem' }}>📷</span>
+                <span style={{ fontWeight: '600', color: 'var(--accent)', fontSize: '0.9rem' }}>Fotocamera</span>
               </div>
             </label>
             <label style={{ flex: 1, cursor: 'pointer' }}>
@@ -460,13 +533,12 @@ export default function Home() {
                 onChange={(e) => { setShowScanModal(false); handleScanFile(e); }}
                 style={{ display: 'none' }} />
               <div style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
-                padding: '24px 16px', borderRadius: '18px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                padding: '18px 14px', borderRadius: '18px',
                 background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)',
               }}>
-                <span style={{ fontSize: '2.2rem' }}>🖼️</span>
-                <span style={{ fontWeight: '600', color: '#a5b4fc', fontSize: '0.95rem' }}>Libreria</span>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', textAlign: 'center' }}>Scegli una foto già scattata</span>
+                <span style={{ fontSize: '2rem' }}>🖼️</span>
+                <span style={{ fontWeight: '600', color: '#a5b4fc', fontSize: '0.9rem' }}>Libreria</span>
               </div>
             </label>
           </div>

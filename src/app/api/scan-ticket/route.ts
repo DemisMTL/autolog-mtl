@@ -5,15 +5,40 @@ const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemi
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageBase64 } = await req.json();
+    const body = await req.json();
+    const { imageBase64, manualCode } = body;
     const apiKey = process.env.GEMINI_API_KEY;
     const syncKey = process.env.SYNC_API_KEY;
     const ticketAppUrl = process.env.TICKET_APP_URL || process.env.NEXT_PUBLIC_TICKET_APP_URL || 'https://app-ticket-sigma.vercel.app';
 
-    if (!imageBase64) return NextResponse.json({ error: "No image" }, { status: 400 });
-    if (!apiKey || !syncKey) return NextResponse.json({ error: "Missing keys" }, { status: 500 });
+    if (!syncKey) return NextResponse.json({ error: "Missing keys" }, { status: 500 });
 
-    // 1. Analyze with Gemini to find a SERIAL or PLATE
+    // ─── Percorso rapido: codice digitato manualmente ─────────────────────────
+    if (manualCode) {
+      const code = String(manualCode).trim().replace(/\s+/g, '').toUpperCase();
+      if (code.length < 3) return NextResponse.json({ success: false, message: "Codice troppo corto. Inserisci almeno 3 caratteri." });
+
+      console.log(`[SCAN-MANUAL] Searching for: ${code}`);
+      const lookupRes = await fetch(`${ticketAppUrl}/api/tickets/lookup?serial=${encodeURIComponent(code)}`, {
+        method: "GET",
+        headers: { "x-api-key": syncKey }
+      });
+
+      if (!lookupRes.ok) return NextResponse.json({ success: false, message: `Errore ricerca per: ${code}` });
+      const { success, ticket } = await lookupRes.json();
+      if (!success || !ticket) return NextResponse.json({ success: false, message: `Nessun ticket trovato per: ${code}` });
+
+      const timestamp = Date.now();
+      const signature = crypto.createHmac('sha256', syncKey).update(`${ticket.commessa}:${timestamp}`).digest('hex');
+      const signedUrl = `${ticketAppUrl}/view?commessa=${ticket.commessa}&embed=true&ts=${timestamp}&sig=${signature}`;
+
+      return NextResponse.json({ success: true, code_found: code, ticket: { ...ticket, signedUrl } });
+    }
+
+    // ─── Percorso immagine: analisi Gemini ────────────────────────────────────
+    if (!imageBase64) return NextResponse.json({ error: "Nessuna immagine o codice fornito" }, { status: 400 });
+    if (!apiKey) return NextResponse.json({ error: "Missing Gemini key" }, { status: 500 });
+
     const prompt = `Sei un esperto di sistemi telematici per veicoli commerciali italiani.
     Analizza questa immagine (può essere un'etichetta di dispositivo, una targa veicolo, uno scontrino o qualsiasi documento) 
     ed estrai UNO dei seguenti codici:
