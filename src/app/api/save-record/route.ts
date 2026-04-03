@@ -69,18 +69,14 @@ export async function POST(req: NextRequest) {
     `;
 
     // ─── Sync with App-Ticket (automatic closure) ───
-    // Evita di sincronizzare se i dati sono troppo brevi o assenti (es. targa non letta bene)
+    // Evita di sincronizzare se i dati sono troppo brevi o assenti
     const validSeriale = seriale_centralina && seriale_centralina.length >= 4;
-    const validTarga = targa && targa.length > 4;
+    const validTarga = targa && targa.length > 3;
 
     if (validSeriale || validTarga) {
       try {
         const ticketAppUrl = process.env.TICKET_APP_URL || process.env.NEXT_PUBLIC_TICKET_APP_URL || 'https://app-ticket-sigma.vercel.app';
-        // Privilegiamo il seriale se valido, altrimenti usiamo la targa
-        const syncPayload = validSeriale ? seriale_centralina : targa;
-
-        // Normalizzazione nome cliente per matchmaking fuzzy
-        // Rimuove spazi, punteggiatura e sigle societarie comuni
+        
         const normalizeClient = (name: string) => {
           if (!name) return "";
           return name.toUpperCase()
@@ -92,40 +88,44 @@ export async function POST(req: NextRequest) {
             .replace(/SAS$/g, '')
             .replace(/SNC$/g, '');
         };
-        
         const normalizedClient = normalizeClient(cliente || "");
-        
-        console.log(`[BACKEND-SYNC] Notifying App-Ticket at ${ticketAppUrl}/api/tickets/sync for: ${syncPayload} (Client: ${normalizedClient})`);
-        
-        const syncRes = await fetch(`${ticketAppUrl}/api/tickets/sync`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.SYNC_API_KEY || ''
-          },
-          body: JSON.stringify({ 
-            serialNumber: syncPayload,
-            customerName: normalizedClient,
-            plate: targa
-          })
-        });
-        
-        if (!syncRes.ok) {
-          const errData = await syncRes.json();
-          console.error('[BACKEND-SYNC] Sync failed:', errData);
+
+        const trySyncWith = async (payload: string): Promise<any> => {
+          console.log(`[BACKEND-SYNC] Trying sync with: ${payload} (Client: ${normalizedClient})`);
+          const res = await fetch(`${ticketAppUrl}/api/tickets/sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.SYNC_API_KEY || '' },
+            body: JSON.stringify({ serialNumber: payload, customerName: normalizedClient, plate: targa })
+          });
+          return { res, data: res.ok ? await res.json() : null };
+        };
+
+        let syncRes, syncData;
+
+        // Primo tentativo: con il seriale (se disponibile)
+        if (validSeriale) {
+          ({ res: syncRes, data: syncData } = await trySyncWith(seriale_centralina!));
+        }
+
+        // Se il sync col seriale non ha trovato match, ritenta con la targa
+        const noMatchFromSerial = !syncData || (syncData.closed === 0 && syncData.found !== 1 && !syncData.error?.includes('Ambiguous') && !syncData.error?.includes('mismatch'));
+        if (noMatchFromSerial && validTarga) {
+          console.log(`[BACKEND-SYNC] Serial sync found no match, retrying with plate: ${targa}`);
+          ({ res: syncRes, data: syncData } = await trySyncWith(targa!));
+        }
+
+        if (!syncRes?.ok) {
+          console.error('[BACKEND-SYNC] Sync failed:', syncData);
         } else {
-          const syncData = await syncRes.json();
-          console.log('[BACKEND-SYNC] Sync success:', syncData);
-          
-          // Se il sync ha avuto successo (sia chiudendo il ticket che solo trovandolo), aggiorniamo il record locale
-          if ((syncData.closed === 1 || syncData.found === 1) && syncData.id) {
+          console.log('[BACKEND-SYNC] Sync result:', syncData);
+          if ((syncData?.closed === 1 || syncData?.found === 1) && syncData?.id) {
             await sql`
               UPDATE records 
               SET is_matched = true, 
                   matched_ticket = ${syncData.id} 
               WHERE id = ${result[0].id}
             `;
-            console.log(`[BACKEND-SYNC] Local record ${result[0].id} updated as matched with ticket ${syncData.id}`);
+            console.log(`[BACKEND-SYNC] Local record ${result[0].id} matched with ticket ${syncData.id}`);
           }
         }
       } catch (syncErr: any) {
