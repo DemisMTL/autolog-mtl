@@ -769,8 +769,31 @@ export default function Home() {
                       </div>
                     )}
                     
-                    {/* RIGA INFERIORE (Modifica ed Elimina) */}
+                    {/* RIGA INFERIORE (Match manuale, Modifica, Elimina) */}
                     <div style={{ display: 'flex', gap: '8px' }}>
+                      {/* Pulsante Match Manuale — solo per record non ancora associati */}
+                      {!record.is_matched && !(record.matched_ticket && String(record.matched_ticket).length > 1) && (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const commessa = prompt(`Inserisci la commessa ticket da associare a ${record.targa || record.telaio || '#' + record.id}:`);
+                            if (!commessa?.trim()) return;
+                            await fetch(`/api/records/${record.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ is_matched: true, matched_ticket: commessa.trim().toUpperCase() }),
+                            });
+                            setRecords(prev => prev.map(r => r.id === record.id ? { ...r, is_matched: true, matched_ticket: commessa.trim().toUpperCase() } : r));
+                          }}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            width: '40px', height: '40px',
+                            background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)',
+                            borderRadius: '12px', cursor: 'pointer', fontSize: '1.2rem', transition: 'all 0.2s'
+                          }}
+                          title="Associa Ticket Manualmente"
+                        >🔗</button>
+                      )}
                       <button
                         onClick={(e) => { e.stopPropagation(); setEditingRecord(record); }}
                         style={{ 
