@@ -25,12 +25,11 @@ interface SheetRecord {
     is_matched?: boolean;
 }
 
-interface LocationCluster {
-    locationName: string;
-    lat: number;
-    lng: number;
+interface ClientGroup {
+    clientName: string;
     records: SheetRecord[];
 }
+
 const VEHICLE_ICONS: { [key: string]: string } = {
     rimorchio: '/icons/trailer.png', semi: '/icons/trailer.png',
     pesante: '/icons/heavy-truck.png', camion: '/icons/heavy-truck.png', stradale: '/icons/heavy-truck.png', trattore: '/icons/heavy-truck.png',
@@ -49,68 +48,28 @@ function getVehicleIcon(tipo: string | null): string {
     return VEHICLE_ICONS.default;
 }
 
-// ─── Algoritmo Haversine (distanza in metri tra 2 coordinate GPS) ─────────────
-function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
-    const R = 6371000;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLng = ((lng2 - lng1) * Math.PI) / 180;
-    const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-// ─── Clustering GPS: raggruppa per raggio ─────────────────────────────────────
-function clusterByLocation(records: SheetRecord[], radiusMeters = 500): LocationCluster[] {
-    const clusters: LocationCluster[] = [];
-
+// ─── Raggruppa record per cliente ─────────────────────────────────────────────
+function groupByClient(records: SheetRecord[]): ClientGroup[] {
+    const map = new Map<string, SheetRecord[]>();
     for (const rec of records) {
-        if (rec.lat === null || rec.lng === null) {
-            // Senza GPS va in "Posizione sconosciuta"
-            let noGps = clusters.find(c => c.locationName === 'Posizione sconosciuta');
-            if (!noGps) {
-                noGps = { locationName: 'Posizione sconosciuta', lat: 0, lng: 0, records: [] };
-                clusters.push(noGps);
-            }
-            noGps.records.push(rec);
-            continue;
-        }
-
-        const nearbyCluster = clusters.find(
-            c => c.lat !== 0 && haversineMeters(c.lat, c.lng, rec.lat!, rec.lng!) < radiusMeters
-        );
-
-        if (nearbyCluster) {
-            nearbyCluster.records.push(rec);
-        } else {
-            clusters.push({ locationName: 'Rilevamento...', lat: rec.lat, lng: rec.lng, records: [rec] });
-        }
+        const key = rec.cliente || 'Cliente sconosciuto';
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push(rec);
     }
-
-    return clusters;
-}
-
-// ─── Reverse geocoding via backend (Google Places → OSM fallback) ─────────────
-async function reverseGeocode(lat: number, lng: number): Promise<string> {
-    try {
-        const res = await fetch(`/api/geocode?lat=${lat}&lng=${lng}`);
-        const data = await res.json();
-        return data.name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    } catch {
-        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    }
+    return Array.from(map.entries())
+        .map(([clientName, records]) => ({ clientName, records }))
+        .sort((a, b) => b.records.length - a.records.length); // più interventi prima
 }
 
 // ─── Generazione PDF unica tabella flat ───────────────────────────────────────
-async function generatePDF(clusters: LocationCluster[], dateLabel: string, reportLabel: string) {
+async function generatePDF(groups: ClientGroup[], dateLabel: string, reportLabel: string) {
     const { jsPDF } = await import('jspdf');
     const autoTable = (await import('jspdf-autotable')).default;
 
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Tutti i record dei cluster (già filtrati prima della chiamata)
-    const allRecords = clusters.flatMap(c => c.records)
+    const allRecords = groups.flatMap(g => g.records)
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
     // Intestazione
@@ -162,17 +121,14 @@ async function generatePDF(clusters: LocationCluster[], dateLabel: string, repor
 }
 
 // ─── Generazione CSV ──────────────────────────────────────────────────────────
-function downloadCSV(clusters: LocationCluster[], clientFilter: string, dateLabel: string) {
-    const header = ['Data/Ora', 'Location', 'Cliente', 'Targa', 'Marca', 'Anno Imm.', 'Tachigrafo', 'Fornitore', 'Tecnico', 'Tipo Veicolo', 'Telaio', 'SN Centralina', 'Lavorazione', 'Note'];
+function downloadCSV(groups: ClientGroup[], dateLabel: string) {
+    const header = ['Data/Ora', 'Cliente', 'Targa', 'Marca', 'Anno Imm.', 'Tachigrafo', 'Fornitore', 'Tecnico', 'Tipo Veicolo', 'Telaio', 'SN Centralina', 'Lavorazione', 'Note'];
     let csvRows = [header.join(';')];
 
-    for (const c of clusters) {
-        for (const r of c.records) {
-            if (clientFilter !== 'Tutti' && r.cliente !== clientFilter) continue;
-
+    for (const g of groups) {
+        for (const r of g.records) {
             const row = [
                 new Date(r.timestamp).toLocaleString('it-IT'),
-                `"${c.locationName}"`,
                 `"${r.cliente || ''}"`,
                 `"${r.targa || ''}"`,
                 `"${r.marca_veicolo || ''}"`,
@@ -194,12 +150,12 @@ function downloadCSV(clusters: LocationCluster[], clientFilter: string, dateLabe
     const csvUrl = URL.createObjectURL(csvData);
     const a = document.createElement('a');
     a.href = csvUrl;
-    a.download = `AutoLog_Export_${clientFilter !== 'Tutti' ? clientFilter.replace(/[^a-z0-9]/gi, '_') : 'Globale'}_${dateLabel}.csv`;
+    a.download = `AutoLog_Export_${dateLabel}.csv`;
     a.click();
 }
 
 // ─── Generazione Singola Scheda PDF ───────────────────────────────────────────
-async function generateSinglePDF(record: SheetRecord, locationName: string) {
+async function generateSinglePDF(record: SheetRecord) {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
@@ -223,7 +179,7 @@ async function generateSinglePDF(record: SheetRecord, locationName: string) {
         doc.setFont('helvetica', 'normal');
         doc.text(value || 'N/A', 55, y, { maxWidth: 140 });
         y += 10;
-        if (value && value.length > 50) y += 5; // Extra spacing for multiline
+        if (value && value.length > 50) y += 5;
     };
 
     addRow('Cliente', record.cliente || '');
@@ -236,7 +192,6 @@ async function generateSinglePDF(record: SheetRecord, locationName: string) {
     addRow('Tipo Veicolo', record.tipo_veicolo || '');
     addRow('Telaio', record.telaio || '');
     addRow('S/N Apparato', record.seriale_centralina || '');
-    addRow('Ubicazione', locationName);
 
     y += 5;
     doc.line(14, y, doc.internal.pageSize.getWidth() - 14, y);
@@ -263,7 +218,7 @@ export default function ReportPage() {
     const today = new Date().toISOString().split('T')[0];
     const [startDate, setStartDate] = useState(today);
     const [endDate, setEndDate] = useState(today);
-    const [clusters, setClusters] = useState<LocationCluster[]>([]);
+    const [allRecords, setAllRecords] = useState<SheetRecord[]>([]);
     const [filterMode, setFilterMode] = useState<'cliente' | 'fornitore'>('cliente');
     const [clientFilter, setClientFilter] = useState('Tutti');
     const [providerFilter, setProviderFilter] = useState('Tutti');
@@ -271,6 +226,19 @@ export default function ReportPage() {
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
     const [isGeneratingSingle, setIsGeneratingSingle] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
+
+    const toggleClient = (clientName: string) => {
+        setExpandedClients(prev => {
+            const next = new Set(prev);
+            if (next.has(clientName)) next.delete(clientName);
+            else next.add(clientName);
+            return next;
+        });
+    };
+
+    const expandAll = () => setExpandedClients(new Set(clientGroups.map(g => g.clientName)));
+    const collapseAll = () => setExpandedClients(new Set());
 
     const loadReport = useCallback(async (start: string, end: string) => {
         setIsLoading(true);
@@ -279,18 +247,7 @@ export default function ReportPage() {
             const res = await fetch(`/api/get-records?startDate=${start}&endDate=${end}`);
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Errore caricamento');
-
-            const rawClusters = clusterByLocation(data.records, 500);
-
-            // Reverse geocoding per ogni cluster
-            const resolved = await Promise.all(
-                rawClusters.map(async c => {
-                    if (c.lat === 0 && c.lng === 0) return c;
-                    const name = await reverseGeocode(c.lat, c.lng);
-                    return { ...c, locationName: name };
-                })
-            );
-            setClusters(resolved);
+            setAllRecords(data.records || []);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -302,6 +259,20 @@ export default function ReportPage() {
         loadReport(startDate, endDate);
     }, [startDate, endDate, loadReport]);
 
+    // Filtra record in base al filtro attivo
+    const filteredRecords = allRecords.filter(r => {
+        if (filterMode === 'cliente') return clientFilter === 'Tutti' || r.cliente === clientFilter;
+        return providerFilter === 'Tutti' || r.fornitore_servizio === providerFilter;
+    });
+
+    // Raggruppa per cliente
+    const clientGroups = groupByClient(filteredRecords);
+
+    const uniqueClients = Array.from(new Set(allRecords.map(r => r.cliente).filter(Boolean))) as string[];
+    const uniqueProviders = Array.from(new Set(allRecords.map(r => r.fornitore_servizio).filter(Boolean))) as string[];
+
+    const totalInterventions = filteredRecords.length;
+
     const handleDownloadPDF = async () => {
         setIsGeneratingPDF(true);
         let label = '';
@@ -312,52 +283,21 @@ export default function ReportPage() {
             const endStr = new Date(endDate + 'T12:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
             label = `dal ${startStr} al ${endStr}`;
         }
-        // Pre-filtra i cluster, poi passa 'Tutti' per evitare il doppio filtro interno
-        const filteredForPDF = clusters.map(c => ({
-            ...c,
-            records: c.records.filter(filterRecord)
-        })).filter(c => c.records.length > 0);
         const displayLabel = filterMode === 'cliente' ? clientFilter : (providerFilter !== 'Tutti' ? providerFilter : 'Tutti');
-        await generatePDF(filteredForPDF, label, 'Tutti'); // 'Tutti' per disattivare il filtro interno (già applicato)
+        await generatePDF(clientGroups, label, displayLabel);
         setIsGeneratingPDF(false);
     };
 
     const handleDownloadCSV = () => {
         const dateLabel = startDate === endDate ? startDate : `${startDate}_to_${endDate}`;
-        // Pre-filtra i cluster, poi passa 'Tutti' per evitare il doppio filtro interno
-        const filteredForCSV = clusters.map(c => ({ ...c, records: c.records.filter(filterRecord) })).filter(c => c.records.length > 0);
-        const filenamePart = filterMode === 'cliente' ? clientFilter : (providerFilter !== 'Tutti' ? `FORNITORE_${providerFilter}` : 'Tutti');
-        downloadCSV(filteredForCSV, 'Tutti', dateLabel); // 'Tutti' per disattivare il filtro interno
+        downloadCSV(clientGroups, dateLabel);
     };
 
-    const handleSinglePDF = async (rec: SheetRecord, loc: string) => {
+    const handleSinglePDF = async (rec: SheetRecord) => {
         setIsGeneratingSingle(true);
-        await generateSinglePDF(rec, loc);
+        await generateSinglePDF(rec);
         setIsGeneratingSingle(false);
     };
-
-    const uniqueClients = Array.from(new Set(
-        clusters.flatMap(c => c.records).map(r => r.cliente).filter(Boolean)
-    )) as string[];
-
-    const uniqueProviders = Array.from(new Set(
-        clusters.flatMap(c => c.records).map(r => r.fornitore_servizio).filter(Boolean)
-    )) as string[];
-
-    // Filtro attivo in base al modo selezionato
-    const activeFilter = filterMode === 'cliente' ? clientFilter : providerFilter;
-    const filterRecord = (r: SheetRecord) => {
-        if (filterMode === 'cliente') return clientFilter === 'Tutti' || r.cliente === clientFilter;
-        return providerFilter === 'Tutti' || r.fornitore_servizio === providerFilter;
-    };
-
-    // Filtro cluster per UI
-    const filteredClustersForUI = clusters.map(c => ({
-        ...c,
-        records: c.records.filter(filterRecord)
-    })).filter(c => c.records.length > 0);
-
-    const totalInterventions = filteredClustersForUI.reduce((s, c) => s + c.records.length, 0);
 
     return (
         <main className="app-container">
@@ -367,7 +307,7 @@ export default function ReportPage() {
             <header className="header" style={{ marginBottom: '24px' }}>
                 <div>
                     <h1>Report</h1>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' }}>Interventi per ubicazione</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' }}>Interventi per cliente</p>
                 </div>
                 <Link href="/" style={{ color: 'var(--text-secondary)', textDecoration: 'none', background: 'rgba(255,255,255,0.08)', padding: '8px 14px', borderRadius: '12px', fontSize: '0.95rem' }}>
                     ← Home
@@ -407,7 +347,6 @@ export default function ReportPage() {
 
                         {/* Toggle Cliente / Fornitore + Filtro */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                            {/* Bottoni toggle */}
                             <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '3px', border: '1px solid rgba(255,255,255,0.07)' }}>
                                 <button
                                     onClick={() => setFilterMode('cliente')}
@@ -429,7 +368,6 @@ export default function ReportPage() {
                                 >📡 Fornitore</button>
                             </div>
 
-                            {/* Select dinamico */}
                             {filterMode === 'cliente' && uniqueClients.length > 0 && (
                                 <select
                                     value={clientFilter}
@@ -440,7 +378,7 @@ export default function ReportPage() {
                                         fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none'
                                     }}
                                 >
-                                    <option value="Tutti" style={{ color: 'black' }}>Tutti i clienti ({clusters.reduce((s, c) => s + c.records.length, 0)})</option>
+                                    <option value="Tutti" style={{ color: 'black' }}>Tutti i clienti ({allRecords.length})</option>
                                     {uniqueClients.map((client, idx) => (
                                         <option key={idx} value={client} style={{ color: 'black' }}>{client}</option>
                                     ))}
@@ -457,7 +395,7 @@ export default function ReportPage() {
                                         fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none'
                                     }}
                                 >
-                                    <option value="Tutti" style={{ color: 'black' }}>Tutti i fornitori ({clusters.reduce((s, c) => s + c.records.length, 0)})</option>
+                                    <option value="Tutti" style={{ color: 'black' }}>Tutti i fornitori ({allRecords.length})</option>
                                     {uniqueProviders.map((p, idx) => (
                                         <option key={idx} value={p} style={{ color: 'black' }}>{p}</option>
                                     ))}
@@ -491,7 +429,7 @@ export default function ReportPage() {
             {isLoading && (
                 <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
                     <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '12px' }} className="recording-pulse">⏳</span>
-                    <p>Caricamento dati da Google Sheets...</p>
+                    <p>Caricamento dati...</p>
                 </div>
             )}
 
@@ -499,112 +437,146 @@ export default function ReportPage() {
             {error && (
                 <div className="glass-panel" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', padding: '20px' }}>
                     <p style={{ color: '#ef4444', fontWeight: '600' }}>⚠️ {error}</p>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '8px' }}>
-                        Controlla di aver configurato GOOGLE_SHEET_ID e GOOGLE_SERVICE_ACCOUNT_KEY nel file .env.local
-                    </p>
                 </div>
             )}
 
-            {/* Sommario */}
+            {/* Sommario + Controlli Accordion */}
             {!isLoading && !error && (
                 <>
                     <section style={{ display: 'flex', gap: '16px' }}>
                         <div style={{ flex: 1, background: 'rgba(0,0,0,0.25)', padding: '20px', borderRadius: '16px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.04)' }}>
-                            <span style={{ display: 'block', fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent)' }}>{filteredClustersForUI.length}</span>
-                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>UBICAZIONI</span>
+                            <span style={{ display: 'block', fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent)' }}>{clientGroups.length}</span>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>CLIENTI</span>
                         </div>
                         <div style={{ flex: 1, background: 'rgba(0,0,0,0.25)', padding: '20px', borderRadius: '16px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.04)' }}>
                             <span style={{ display: 'block', fontSize: '2rem', fontWeight: 'bold', color: 'var(--success)' }}>{totalInterventions}</span>
-                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
-                                INTERVENTI {activeFilter !== 'Tutti' && `(${activeFilter})`}
-                            </span>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>INTERVENTI</span>
                         </div>
                     </section>
 
-                    {/* Lista Cluster per ubicazione */}
-                    {filteredClustersForUI.length === 0 ? (
+                    {/* Espandi/Comprimi tutti */}
+                    {clientGroups.length > 0 && (
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={expandAll}
+                                style={{
+                                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                                    color: 'var(--text-secondary)', padding: '6px 14px', borderRadius: '10px',
+                                    fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.2s'
+                                }}
+                            >▼ Espandi tutti</button>
+                            <button
+                                onClick={collapseAll}
+                                style={{
+                                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                                    color: 'var(--text-secondary)', padding: '6px 14px', borderRadius: '10px',
+                                    fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.2s'
+                                }}
+                            >▲ Comprimi tutti</button>
+                        </div>
+                    )}
+
+                    {/* Lista per Cliente (Accordion) */}
+                    {clientGroups.length === 0 ? (
                         <div className="glass-panel" style={{ textAlign: 'center', padding: '48px 24px', opacity: 0.7 }}>
                             <span style={{ fontSize: '3rem', display: 'block', marginBottom: '16px' }}>📋</span>
                             <p style={{ color: 'var(--text-secondary)' }}>Nessun intervento registrato con i filtri attuali.</p>
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '48px' }}>
-                            {filteredClustersForUI.map((cluster, idx) => (
-                                <section key={idx} className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-                                    {/* Header ubicazione */}
-                                    <div style={{ padding: '18px 20px', background: 'rgba(211,47,47,0.07)', borderBottom: '1px solid var(--glass-border)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                                            <span style={{ fontSize: '1.4rem', marginTop: '2px' }}>📍</span>
-                                            <div style={{ flex: 1 }}>
-                                                <h2 style={{ fontSize: '1.05rem', lineHeight: '1.4' }}>{cluster.locationName}</h2>
-                                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '4px' }}>
-                                                    {cluster.records.length} intervento{cluster.records.length !== 1 ? 'i' : 'o'}
-                                                </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '48px' }}>
+                            {clientGroups.map((group, idx) => {
+                                const isExpanded = expandedClients.has(group.clientName);
+                                return (
+                                    <section key={idx} className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
+                                        {/* Header cliente — cliccabile per aprire/chiudere */}
+                                        <button
+                                            onClick={() => toggleClient(group.clientName)}
+                                            style={{
+                                                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                padding: '16px 20px', background: isExpanded ? 'rgba(211,47,47,0.1)' : 'rgba(211,47,47,0.04)',
+                                                borderBottom: isExpanded ? '1px solid var(--glass-border)' : 'none',
+                                                border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s',
+                                                fontFamily: 'inherit',
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <span style={{
+                                                    fontSize: '1.1rem', transition: 'transform 0.3s',
+                                                    transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                                                    display: 'inline-block'
+                                                }}>▶</span>
+                                                <div>
+                                                    <h2 style={{ fontSize: '1.05rem', lineHeight: '1.4', color: 'var(--text-primary)', margin: 0 }}>
+                                                        🏢 {group.clientName}
+                                                    </h2>
+                                                </div>
                                             </div>
                                             <span style={{
-                                                background: 'rgba(211,47,47,0.15)', color: 'var(--accent)', padding: '4px 10px',
-                                                borderRadius: '20px', fontSize: '0.8rem', fontWeight: '700'
+                                                background: 'rgba(211,47,47,0.15)', color: 'var(--accent)', padding: '4px 12px',
+                                                borderRadius: '20px', fontSize: '0.85rem', fontWeight: '700', whiteSpace: 'nowrap'
                                             }}>
-                                                #{idx + 1}
+                                                {group.records.length} intervento{group.records.length !== 1 ? 'i' : 'o'}
                                             </span>
-                                        </div>
-                                    </div>
+                                        </button>
 
-                                    {/* Lista veicoli */}
-                                    <div style={{ padding: '12px 0' }}>
-                                        {cluster.records.map((rec, rIdx) => (
-                                            <div key={rIdx} style={{
-                                                display: 'flex', gap: '14px', padding: '12px 20px',
-                                                borderBottom: rIdx < cluster.records.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                                                alignItems: 'flex-start'
-                                            }}>
-                                                <div style={{ width: '72px', height: '72px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2a2a2a', borderRadius: '12px', padding: '6px' }}>
-                                                    <img style={{ width: '100%', height: '100%', objectFit: 'contain' }} src={getVehicleIcon(rec.tipo_veicolo)} alt="Veicolo" />
-                                                </div>
-                                                <div style={{ flex: 1 }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', flexWrap: 'wrap' }}>
-                                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                            <span style={{ fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
-                                                                {rec.targa || rec.tipo_veicolo || 'Veicolo'}
-                                                            </span>
-                                                            {rec.cliente && (
-                                                                <span style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: '500', marginTop: '2px' }}>
-                                                                    🏢 {rec.cliente}
-                                                                </span>
-                                                            )}
-                                                            {rec.marca_modello_tachigrafo && (
-                                                                <span style={{ fontSize: '0.8rem', color: '#e57373', marginTop: '2px' }}>
-                                                                    ⏱️ {rec.marca_modello_tachigrafo}
-                                                                </span>
-                                                            )}
+                                        {/* Lista veicoli (accordion body) */}
+                                        {isExpanded && (
+                                            <div style={{ padding: '12px 0' }}>
+                                                {group.records.map((rec, rIdx) => (
+                                                    <div key={rIdx} style={{
+                                                        display: 'flex', gap: '14px', padding: '12px 20px',
+                                                        borderBottom: rIdx < group.records.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                                                        alignItems: 'flex-start'
+                                                    }}>
+                                                        <div style={{ width: '72px', height: '72px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2a2a2a', borderRadius: '12px', padding: '6px' }}>
+                                                            <img style={{ width: '100%', height: '100%', objectFit: 'contain' }} src={getVehicleIcon(rec.tipo_veicolo)} alt="Veicolo" />
                                                         </div>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                                                {new Date(rec.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                                                            </span>
-                                                            {rec.is_matched && <div style={{ fontSize: '1.2rem', marginBottom: '2px' }} title="Matchato con Ticket">✅</div>}
-                                                            <button
-                                                                onClick={() => handleSinglePDF(rec, cluster.locationName)}
-                                                                disabled={isGeneratingSingle}
-                                                                style={{
-                                                                    background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
-                                                                    color: '#fff', padding: '4px 8px', borderRadius: '8px', fontSize: '0.75rem',
-                                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
-                                                                }}
-                                                            >
-                                                                ⬇️ Scheda
-                                                            </button>
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', flexWrap: 'wrap' }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                    <span style={{ fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+                                                                        {rec.targa || rec.tipo_veicolo || 'Veicolo'}
+                                                                    </span>
+                                                                    {rec.marca_modello_tachigrafo && (
+                                                                        <span style={{ fontSize: '0.8rem', color: '#e57373', marginTop: '2px' }}>
+                                                                            ⏱️ {rec.marca_modello_tachigrafo}
+                                                                        </span>
+                                                                    )}
+                                                                    {rec.fornitore_servizio && (
+                                                                        <span style={{ fontSize: '0.8rem', color: '#a5b4fc', marginTop: '2px' }}>
+                                                                            📡 {rec.fornitore_servizio}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                                                        {new Date(rec.timestamp).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })} {new Date(rec.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                                                                    </span>
+                                                                    {rec.is_matched && <div style={{ fontSize: '1.2rem', marginBottom: '2px' }} title="Matchato con Ticket">✅</div>}
+                                                                    <button
+                                                                        onClick={() => handleSinglePDF(rec)}
+                                                                        disabled={isGeneratingSingle}
+                                                                        style={{
+                                                                            background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                                                                            color: '#fff', padding: '4px 8px', borderRadius: '8px', fontSize: '0.75rem',
+                                                                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+                                                                        }}
+                                                                    >
+                                                                        ⬇️ Scheda
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '6px' }}>
+                                                                {rec.lavorazione_eseguita || rec.note || '—'}
+                                                            </p>
                                                         </div>
                                                     </div>
-                                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '6px' }}>
-                                                        {rec.lavorazione_eseguita || rec.note || '—'}
-                                                    </p>
-                                                </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
-                                </section>
-                            ))}
+                                        )}
+                                    </section>
+                                );
+                            })}
                         </div>
                     )}
                 </>
