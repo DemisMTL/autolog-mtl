@@ -40,6 +40,66 @@ export async function POST(req: NextRequest) {
     await ensureTable();
     const sql = getDb();
 
+    // ─── Client Unification Logic ───
+    let unifiedCliente = cliente || null;
+
+    if (cliente && cliente.trim().length > 0) {
+      try {
+        const ticketAppUrl = process.env.TICKET_APP_URL || process.env.NEXT_PUBLIC_TICKET_APP_URL || 'https://app-ticket-sigma.vercel.app';
+        const syncKey = process.env.SYNC_API_KEY || '';
+
+        // Helper per la normalizzazione "fuzzy"
+        const fuzzyNormalize = (name: string) => {
+          return name.toUpperCase()
+            .replace(/\s+/g, '')
+            .replace(/[.,]/g, '')
+            .replace(/SRL$/g, '')
+            .replace(/SPA$/g, '')
+            .replace(/SAS$/g, '')
+            .replace(/SNC$/g, '');
+        };
+
+        const inputNormalized = fuzzyNormalize(cliente);
+        console.log(`[CLIENT-UNIFY] Input: "${cliente}" -> Norm: "${inputNormalized}"`);
+
+        // 1. Cerca nei Ticket (Source of Truth)
+        const clientsRes = await fetch(`${ticketAppUrl}/api/clients`, {
+          headers: { 'x-api-key': syncKey },
+          next: { revalidate: 3600 } // Cache per 1 ora
+        });
+
+        if (clientsRes.ok) {
+          const masterClients = await clientsRes.json();
+          const match = masterClients.find((mc: any) => fuzzyNormalize(mc.name) === inputNormalized);
+          
+          if (match) {
+            console.log(`[CLIENT-UNIFY] Match found in Tickets: "${match.name}"`);
+            unifiedCliente = match.name;
+          }
+        }
+
+        // 2. Se non trovato nei ticket, cerca nello storico locale dell'App-MTL
+        if (unifiedCliente === cliente) {
+          const localMatch = await sql`
+            SELECT cliente, COUNT(*) as freq 
+            FROM records 
+            WHERE cliente IS NOT NULL
+            GROUP BY cliente 
+            ORDER BY freq DESC 
+            LIMIT 100
+          `;
+          
+          const bestLocal = localMatch.find(lm => fuzzyNormalize(lm.cliente) === inputNormalized);
+          if (bestLocal) {
+            console.log(`[CLIENT-UNIFY] Match found in local history: "${bestLocal.cliente}"`);
+            unifiedCliente = bestLocal.cliente;
+          }
+        }
+      } catch (err: any) {
+        console.error('[CLIENT-UNIFY] Error during client unification:', err.message);
+      }
+    }
+
     const result = await sql`
       INSERT INTO records (
         timestamp, targa, tipo_veicolo, numero_veicolo,
@@ -59,7 +119,7 @@ export async function POST(req: NextRequest) {
         ${telaio || null},
         ${seriale_centralina || null},
         ${marca_veicolo || null},
-        ${cliente || null},
+        ${unifiedCliente},
         ${anno_immatricolazione || null},
         ${marca_modello_tachigrafo || null},
         ${fornitore_servizio ?? null},
@@ -88,7 +148,7 @@ export async function POST(req: NextRequest) {
             .replace(/SAS$/g, '')
             .replace(/SNC$/g, '');
         };
-        const normalizedClient = normalizeClient(cliente || "");
+        const normalizedClient = normalizeClient(unifiedCliente || "");
 
         const trySyncWith = async (payload: string): Promise<any> => {
           console.log(`[BACKEND-SYNC] Trying sync with: ${payload} (Client: ${normalizedClient})`);
