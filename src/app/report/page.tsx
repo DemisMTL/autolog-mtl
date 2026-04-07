@@ -2,32 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { InterventRecord } from '@/types';
+import { PreviewModal } from '@/components/Modals';
 
 // ─── Tipi ────────────────────────────────────────────────────────────────────
-interface SheetRecord {
-    timestamp: string;
-    targa: string | null;
-    tipo_veicolo: string | null;
-    numero_veicolo: string | null;
-    lavorazione_eseguita: string | null;
-    note: string;
-    lat: number | null;
-    lng: number | null;
-    cliente?: string | null;
-    telaio?: string | null;
-    seriale_centralina?: string | null;
-    marca_veicolo?: string | null;
-    anno_immatricolazione?: string | null;
-    marca_modello_tachigrafo?: string | null;
-    fornitore_servizio?: string | null;
-    tecnico?: string | null;
-    tipo_lavorazione?: string | null;
-    is_matched?: boolean;
-}
-
 interface ClientGroup {
     clientName: string;
-    records: SheetRecord[];
+    records: InterventRecord[];
 }
 
 const VEHICLE_ICONS: { [key: string]: string } = {
@@ -49,8 +30,8 @@ function getVehicleIcon(tipo: string | null): string {
 }
 
 // ─── Raggruppa record per cliente ─────────────────────────────────────────────
-function groupByClient(records: SheetRecord[]): ClientGroup[] {
-    const map = new Map<string, SheetRecord[]>();
+function groupByClient(records: InterventRecord[]): ClientGroup[] {
+    const map = new Map<string, InterventRecord[]>();
     for (const rec of records) {
         const key = rec.cliente || 'Cliente sconosciuto';
         if (!map.has(key)) map.set(key, []);
@@ -155,7 +136,7 @@ function downloadCSV(groups: ClientGroup[], dateLabel: string) {
 }
 
 // ─── Generazione Singola Scheda PDF ───────────────────────────────────────────
-async function generateSinglePDF(record: SheetRecord) {
+async function generateSinglePDF(record: InterventRecord) {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
@@ -218,7 +199,7 @@ export default function ReportPage() {
     const today = new Date().toISOString().split('T')[0];
     const [startDate, setStartDate] = useState(today);
     const [endDate, setEndDate] = useState(today);
-    const [allRecords, setAllRecords] = useState<SheetRecord[]>([]);
+    const [allRecords, setAllRecords] = useState<InterventRecord[]>([]);
     const [filterMode, setFilterMode] = useState<'cliente' | 'fornitore'>('cliente');
     const [clientFilter, setClientFilter] = useState('Tutti');
     const [providerFilter, setProviderFilter] = useState('Tutti');
@@ -227,6 +208,7 @@ export default function ReportPage() {
     const [isGeneratingSingle, setIsGeneratingSingle] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
+    const [previewRecord, setPreviewRecord] = useState<InterventRecord | null>(null);
 
     const toggleClient = (clientName: string) => {
         setExpandedClients(prev => {
@@ -293,7 +275,7 @@ export default function ReportPage() {
         downloadCSV(clientGroups, dateLabel);
     };
 
-    const handleSinglePDF = async (rec: SheetRecord) => {
+    const handleSinglePDF = async (rec: InterventRecord) => {
         setIsGeneratingSingle(true);
         await generateSinglePDF(rec);
         setIsGeneratingSingle(false);
@@ -303,6 +285,10 @@ export default function ReportPage() {
         <main className="app-container">
             <div className="bg-glow"></div>
             <div className="bg-glow-2"></div>
+            
+            {previewRecord && (
+                <PreviewModal record={previewRecord} onClose={() => setPreviewRecord(null)} />
+            )}
 
             <header className="header" style={{ marginBottom: '24px' }}>
                 <div>
@@ -553,17 +539,30 @@ export default function ReportPage() {
                                                                         {new Date(rec.timestamp).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })} {new Date(rec.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
                                                                     </span>
                                                                     {rec.is_matched && <div style={{ fontSize: '1.2rem', marginBottom: '2px' }} title="Matchato con Ticket">✅</div>}
-                                                                    <button
-                                                                        onClick={() => handleSinglePDF(rec)}
-                                                                        disabled={isGeneratingSingle}
-                                                                        style={{
-                                                                            background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
-                                                                            color: '#fff', padding: '4px 8px', borderRadius: '8px', fontSize: '0.75rem',
-                                                                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
-                                                                        }}
-                                                                    >
-                                                                        ⬇️ Scheda
-                                                                    </button>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                        <button
+                                                                            onClick={() => setPreviewRecord(rec)}
+                                                                            style={{
+                                                                                background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                                                                                color: '#fff', padding: '4px 8px', borderRadius: '8px', fontSize: '0.9rem',
+                                                                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                                            }}
+                                                                            title="Anteprima rapida"
+                                                                        >
+                                                                            👁️
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleSinglePDF(rec)}
+                                                                            disabled={isGeneratingSingle}
+                                                                            style={{
+                                                                                background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                                                                                color: '#fff', padding: '4px 8px', borderRadius: '8px', fontSize: '0.75rem',
+                                                                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+                                                                            }}
+                                                                        >
+                                                                            ⬇️ Scheda
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '6px' }}>

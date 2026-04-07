@@ -1,31 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import TicketPanel from './components/TicketPanel';
-
-interface InterventRecord {
-  id: number;
-  timestamp: string;
-  targa: string | null;
-  tipo_veicolo: string | null;
-  numero_veicolo: string | null;
-  lavorazione_eseguita: string | null;
-  note: string;
-  lat: number | null;
-  lng: number | null;
-  cliente?: string | null;
-  telaio?: string | null;
-  seriale_centralina?: string | null;
-  marca_veicolo?: string | null;
-  anno_immatricolazione?: string | null;
-  marca_modello_tachigrafo?: string | null;
-  fornitore_servizio?: string | null;
-  tecnico?: string | null;
-  is_matched?: boolean;
-  matched_ticket?: string | null;
-  signed_ticket_url?: string | null;
-}
+import { InterventRecord } from '@/types';
+import { PreviewModal, EditModal } from '@/components/Modals';
 
 const VEHICLE_ICONS: { [key: string]: string } = {
   rimorchio: '/icons/trailer.png', semi: '/icons/trailer.png',
@@ -107,183 +86,6 @@ function TicketPopup({ commessa, signedUrl, onClose }: { commessa: string, signe
   );
 }
 
-// ─── Modale di anteprima (sola lettura) ─────────────────────────────────────
-function PreviewModal({ record, onClose, onEdit }: {
-  record: InterventRecord;
-  onClose: () => void;
-  onEdit: () => void;
-}) {
-  const fields: { label: string; value: string | null | undefined; mono?: boolean }[] = [
-    { label: '🏢 Cliente', value: record.cliente },
-    { label: '🚛 Targa', value: record.targa, mono: true },
-    { label: '🔢 N. Telaio', value: record.telaio, mono: true },
-    { label: '🔌 Seriale Centralina', value: record.seriale_centralina, mono: true },
-    { label: '🚗 Tipo Veicolo', value: record.tipo_veicolo },
-    { label: 'Marca Veicolo', value: record.marca_veicolo },
-    { label: '📅 Anno Immatricolazione', value: record.anno_immatricolazione },
-    { label: '#️⃣ N. Veicolo Aziendale', value: record.numero_veicolo },
-    { label: '⏱️ Tachigrafo', value: record.marca_modello_tachigrafo },
-    { label: '📡 Fornitore Servizio', value: record.fornitore_servizio },
-    { label: '👤 Tecnico', value: record.tecnico },
-    { label: '🔧 Lavorazione', value: record.lavorazione_eseguita },
-    { label: '📝 Note', value: record.note },
-  ].filter(f => f.value && String(f.value).trim().length > 0);
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 1000,
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-      backdropFilter: 'blur(6px)'
-    }} onClick={onClose}>
-      <div style={{
-        background: 'linear-gradient(160deg, #1e293b, #0f172a)',
-        borderRadius: '24px 24px 0 0', padding: '24px', width: '100%', maxWidth: '600px',
-        border: '1px solid rgba(255,255,255,0.08)', maxHeight: '85vh', overflowY: 'auto',
-        display: 'flex', flexDirection: 'column', gap: '0'
-      }} onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <div>
-            <h2 style={{ fontSize: '1.2rem', margin: 0 }}>
-              {record.targa || record.tipo_veicolo || 'Intervento'}
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>
-              {new Date(record.timestamp).toLocaleString('it-IT', { dateStyle: 'long', timeStyle: 'short' })}
-            </p>
-          </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
-        </div>
-
-        {/* Campi valorizzati */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-          {fields.map(({ label, value, mono }) => (
-            <div key={label} style={{
-              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: '12px', padding: '12px 16px'
-            }}>
-              <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
-              <span style={{ color: 'white', fontFamily: mono ? 'monospace' : 'inherit', fontSize: mono ? '0.95rem' : '1rem', letterSpacing: mono ? '0.05em' : 'normal' }}>{value}</span>
-            </div>
-          ))}
-          {fields.length === 0 && (
-            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '24px 0' }}>Nessun dato registrato.</p>
-          )}
-        </div>
-
-        {/* Bottone modifica */}
-        <button
-          onClick={() => { onClose(); onEdit(); }}
-          style={{ width: '100%', padding: '14px', borderRadius: '16px', background: 'rgba(211,47,47,0.15)', border: '1px solid rgba(211,47,47,0.3)', color: 'var(--accent)', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
-        >
-          ✏️ Modifica Scheda
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Modale di modifica ───────────────────────────────────────────────────────
-function EditModal({ record, onSave, onClose }: {
-  record: InterventRecord;
-  onSave: (updated: Partial<InterventRecord>) => Promise<void>;
-  onClose: () => void;
-}) {
-  const [form, setForm] = useState({
-    cliente: record.cliente || '',
-    targa: record.targa || '',
-    anno_immatricolazione: record.anno_immatricolazione || '',
-    marca_veicolo: record.marca_veicolo || '',
-    tipo_veicolo: record.tipo_veicolo || '',
-    numero_veicolo: record.numero_veicolo || '',
-    telaio: record.telaio || '',
-    seriale_centralina: record.seriale_centralina || '',
-    marca_modello_tachigrafo: record.marca_modello_tachigrafo || '',
-    fornitore_servizio: record.fornitore_servizio || '',
-    tecnico: record.tecnico || '',
-    lavorazione_eseguita: record.lavorazione_eseguita || '',
-    note: record.note || '',
-  });
-  const [saving, setSaving] = useState(false);
-
-  const handleSubmit = async () => {
-    setSaving(true);
-    await onSave(form);
-    setSaving(false);
-  };
-
-  const fieldStyle = {
-    width: '100%', padding: '12px', borderRadius: '12px',
-    background: 'rgba(0,0,0,0.3)', border: '1px solid var(--glass-border)',
-    color: 'white', fontSize: '1rem', fontFamily: 'inherit', boxSizing: 'border-box' as const
-  };
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000,
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-      backdropFilter: 'blur(4px)'
-    }} onClick={onClose}>
-      <div style={{
-        background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-        borderRadius: '24px 24px 0 0', padding: '24px', width: '100%', maxWidth: '600px',
-        border: '1px solid var(--glass-border)', maxHeight: '80vh', overflowY: 'auto'
-      }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '1.2rem' }}>✏️ Modifica Scheda</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {[
-            { label: '🏢 Cliente / Azienda', key: 'cliente' },
-            { label: 'Targa', key: 'targa' },
-            { label: '📅 Anno Immatricolazione', key: 'anno_immatricolazione' },
-            { label: 'Marca Veicolo', key: 'marca_veicolo' },
-            { label: 'Tipo Veicolo', key: 'tipo_veicolo' },
-            { label: 'Numero Veicolo Aziendale', key: 'numero_veicolo' },
-            { label: '⏱️ Marca/Versione Tachigrafo', key: 'marca_modello_tachigrafo' },
-            { label: '📡 Fornitore Servizio', key: 'fornitore_servizio' },
-            { label: '👤 Tecnico Assegnato', key: 'tecnico' },
-            { label: '🔢 N. Telaio', key: 'telaio' },
-            { label: '🔌 Seriale Centralina', key: 'seriale_centralina' },
-          ].map(({ label, key }) => (
-            <div key={key}>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{label}</label>
-              <input
-                type="text"
-                value={(form as any)[key]}
-                onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                style={fieldStyle}
-              />
-            </div>
-          ))}
-          <div>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Lavorazione Eseguita</label>
-            <textarea
-              value={form.lavorazione_eseguita}
-              onChange={e => setForm(f => ({ ...f, lavorazione_eseguita: e.target.value }))}
-              style={{ ...fieldStyle, minHeight: '80px', resize: 'vertical' }}
-            />
-          </div>
-          <div>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Note</label>
-            <textarea
-              value={form.note}
-              onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
-              style={{ ...fieldStyle, minHeight: '60px', resize: 'vertical' }}
-            />
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '14px', borderRadius: '16px', background: 'rgba(255,255,255,0.08)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '600' }}>Annulla</button>
-          <button onClick={handleSubmit} disabled={saving} className="btn-primary" style={{ flex: 2, padding: '14px', borderRadius: '16px' }}>
-            {saving ? '⏳ Salvataggio...' : '✅ Salva Modifiche'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Componente principale ────────────────────────────────────────────────────
 export default function Home() {
   const [records, setRecords] = useState<InterventRecord[]>([]);
@@ -292,11 +94,21 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState<InterventRecord | null>(null);
   const [previewRecord, setPreviewRecord] = useState<InterventRecord | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const [showTicketInfo, setShowTicketInfo] = useState<{ commessa: string, signedUrl: string | null } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<string | null>(null);
   const [showScanModal, setShowScanModal] = useState(false);
+
+  // Debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   const compressImage = (dataUrl: string): Promise<string> =>
     new Promise((resolve) => {
@@ -361,30 +173,32 @@ export default function Home() {
     }
   };
 
-  const loadRecords = async () => {
+  const loadRecords = useCallback(async (query: string = '') => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/get-records');
+      const url = `/api/get-records?limit=100${query ? `&q=${encodeURIComponent(query)}` : ''}`;
+      const res = await fetch(url);
       const data = await res.json();
       if (res.ok && data.records) {
-        const sorted = data.records.sort(
-          (a: InterventRecord, b: InterventRecord) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-        setRecords(sorted);
-        const now = new Date();
-        setTodayCount(sorted.filter((r: InterventRecord) => new Date(r.timestamp).toDateString() === now.toDateString()).length);
-        setMonthCount(sorted.filter((r: InterventRecord) => {
-          const d = new Date(r.timestamp);
-          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-        }).length);
+        // L'API restituisce già ordinati per timestamp DESC nel default e nel search case
+        setRecords(data.records);
+        
+        // Se non è una ricerca, aggiorniamo le statistiche
+        if (!query) {
+            const now = new Date();
+            setTodayCount(data.records.filter((r: InterventRecord) => new Date(r.timestamp).toDateString() === now.toDateString()).length);
+            setMonthCount(data.records.filter((r: InterventRecord) => {
+              const d = new Date(r.timestamp);
+              return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            }).length);
+        }
       }
     } catch (err) {
       console.error('Errore caricamento record:', err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     // Memorizza tecnico se passato via URL link
@@ -395,8 +209,8 @@ export default function Home() {
         localStorage.setItem('autolog_tecnico', tec.toUpperCase());
       }
     }
-    loadRecords();
-  }, []);
+    loadRecords(debouncedSearch);
+  }, [debouncedSearch, loadRecords]);
 
   const handleDelete = async (id: number) => {
     if (!confirm('Eliminare questa scheda?')) return;
@@ -659,7 +473,29 @@ export default function Home() {
       <TicketPanel />
 
       <section style={{ marginTop: '20px', marginBottom: '100px' }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '20px' }}>Ultime Registrazioni</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Ultime Registrazioni</h2>
+          <div style={{ position: 'relative', flex: '1 1 300px', maxWidth: '500px' }}>
+            <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+            <input
+              type="text"
+              placeholder="Cerca per targa, cliente, fornitore..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%', padding: '12px 14px 12px 40px', borderRadius: '14px',
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                color: 'white', fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none'
+              }}
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.1rem' }}
+              >✕</button>
+            )}
+          </div>
+        </div>
 
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-secondary)' }}>
@@ -675,7 +511,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="recent-list">
-            {records.slice(0, 30).map((record) => {
+            {records.slice(0, 100).map((record) => {
               const { day, time } = formatDate(record.timestamp);
               return (
                 <div key={record.id} className="record-card" style={{ cursor: 'pointer' }} onClick={() => setPreviewRecord(record)}>
@@ -794,6 +630,38 @@ export default function Home() {
                           title="Associa Ticket Manualmente"
                         >🔗</button>
                       )}
+                      {/* Pulsante Certificato Collaudo — visibile solo se collaudo_url è presente */}
+                      {record.collaudo_url && (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            // If it's a Vercel Blob private URL, get a signed download link
+                            if (record.collaudo_url!.startsWith('https://')) {
+                              try {
+                                const ticketAppUrl = process.env.NEXT_PUBLIC_TICKET_APP_URL || 'https://app-ticket-sigma.vercel.app';
+                                const res = await fetch(`${ticketAppUrl}/api/collaudo/download?url=${encodeURIComponent(record.collaudo_url!)}`, {
+                                  headers: { 'x-api-key': process.env.NEXT_PUBLIC_SYNC_API_KEY || '' }
+                                });
+                                if (res.ok) {
+                                  const { downloadUrl } = await res.json();
+                                  window.open(downloadUrl, '_blank');
+                                  return;
+                                }
+                              } catch {}
+                            }
+                            // Fallback: open direct URL
+                            window.open(record.collaudo_url!, '_blank');
+                          }}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            width: '40px', height: '40px',
+                            background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.35)',
+                            borderRadius: '12px', cursor: 'pointer', fontSize: '1.2rem', transition: 'all 0.2s',
+                            boxShadow: '0 0 8px rgba(16,185,129,0.15)'
+                          }}
+                          title="Scarica Certificato di Collaudo WAY"
+                        >📄</button>
+                      )}
                       <button
                         onClick={(e) => { e.stopPropagation(); setEditingRecord(record); }}
                         style={{ 
@@ -814,6 +682,7 @@ export default function Home() {
                         }}
                         title="Elimina"
                       >🗑</button>
+
                     </div>
                   </div>
                 </div>

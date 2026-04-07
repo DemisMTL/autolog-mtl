@@ -7,6 +7,8 @@ export async function GET(req: NextRequest) {
     const sql = getDb();
 
     const { searchParams } = new URL(req.url);
+    const q = searchParams.get('q');
+    const limit = parseInt(searchParams.get('limit') || '100');
     const dateFilter = searchParams.get('date');
     const startDateFilter = searchParams.get('startDate');
     const endDateFilter = searchParams.get('endDate');
@@ -14,7 +16,24 @@ export async function GET(req: NextRequest) {
     const unmatchedFilter = searchParams.get('unmatched') === 'true';
 
     let rows;
-    if (unmatchedFilter) {
+    if (q) {
+      const searchTerm = `%${q}%`;
+      rows = await sql`
+        SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
+               lavorazione_eseguita, note, lat, lng,
+               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket
+        FROM records
+        WHERE targa ILIKE ${searchTerm}
+           OR numero_veicolo ILIKE ${searchTerm}
+           OR fornitore_servizio ILIKE ${searchTerm}
+           OR cliente ILIKE ${searchTerm}
+           OR telaio ILIKE ${searchTerm}
+           OR seriale_centralina ILIKE ${searchTerm}
+           OR lavorazione_eseguita ILIKE ${searchTerm}
+        ORDER BY timestamp DESC
+        LIMIT ${limit}
+      `;
+    } else if (unmatchedFilter) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
@@ -22,7 +41,7 @@ export async function GET(req: NextRequest) {
         FROM records
         WHERE is_matched IS NOT TRUE
         ORDER BY timestamp DESC
-        LIMIT 100
+        LIMIT ${limit}
       `;
     } else if (commessaFilter) {
       rows = await sql`
@@ -59,7 +78,7 @@ export async function GET(req: NextRequest) {
                telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket
         FROM records
         ORDER BY timestamp DESC
-        LIMIT 100
+        LIMIT ${limit}
       `;
     }
 
