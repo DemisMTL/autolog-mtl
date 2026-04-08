@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
-               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket
+               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket, collaudo_url
         FROM records
         WHERE targa ILIKE ${searchTerm}
            OR numero_veicolo ILIKE ${searchTerm}
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
-               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket
+               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket, collaudo_url
         FROM records
         WHERE is_matched IS NOT TRUE
         ORDER BY timestamp DESC
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
-               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket
+               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket, collaudo_url
         FROM records
         WHERE matched_ticket = ${commessaFilter}
         ORDER BY timestamp DESC
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
-               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket
+               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket, collaudo_url
         FROM records
         WHERE DATE(timestamp AT TIME ZONE 'Europe/Rome') >= ${startDateFilter}
           AND DATE(timestamp AT TIME ZONE 'Europe/Rome') <= ${endDateFilter}
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
-               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket
+               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket, collaudo_url
         FROM records
         WHERE DATE(timestamp AT TIME ZONE 'Europe/Rome') = ${dateFilter}
         ORDER BY timestamp ASC
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
       rows = await sql`
         SELECT id, timestamp::text, targa, tipo_veicolo, numero_veicolo,
                lavorazione_eseguita, note, lat, lng,
-               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket
+               telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, is_matched, matched_ticket, collaudo_url
         FROM records
         ORDER BY timestamp DESC
         LIMIT ${limit}
@@ -120,7 +120,8 @@ export async function GET(req: NextRequest) {
         tecnico: r.tecnico,
         is_matched: r.is_matched === true || r.is_matched === 1 || r.is_matched === 'true' || r.is_matched === 't',
         matched_ticket: commessa,
-        signed_ticket_url: signedUrl
+        signed_ticket_url: signedUrl,
+        collaudo_url: r.collaudo_url || null
       };
     });
 
