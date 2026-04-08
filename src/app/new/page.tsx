@@ -14,6 +14,8 @@ export default function NewRecord() {
     const [reviewData, setReviewData] = useState<any>(null);
     const [nearbyCompanies, setNearbyCompanies] = useState<string[]>([]);
     const [debugInfo, setDebugInfo] = useState<any>(null);
+    const [duplicateWarning, setDuplicateWarning] = useState<{ matches: any[] } | null>(null);
+    const [pendingRecord, setPendingRecord] = useState<any>(null);
 
     // Riferimento all'istanza
     const recognitionRef = useRef<any>(null);
@@ -213,16 +215,31 @@ export default function NewRecord() {
         records.push(newRecord);
         localStorage.setItem('autolog_records', JSON.stringify(records));
 
-        // 2. Salvataggio cloud Neon (in background)
-        try {
-            await fetch('/api/save-record', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newRecord),
-            });
-        } catch (cloudErr) {
-            console.warn('Salvataggio cloud fallito:', cloudErr);
-        }
+        // 2. Salvataggio cloud Neon
+        const doSave = async (force = false) => {
+            try {
+                const res = await fetch('/api/save-record', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...newRecord, force }),
+                });
+                const data = await res.json();
+
+                // Intercetta risposta duplicato
+                if (data.duplicate === true) {
+                    setPendingRecord(newRecord);
+                    setDuplicateWarning({ matches: data.matches });
+                    setIsSaving(false);
+                    return false; // Non proseguire
+                }
+            } catch (cloudErr) {
+                console.warn('Salvataggio cloud fallito:', cloudErr);
+            }
+            return true; // Salvataggio ok
+        };
+
+        const saved = await doSave(false);
+        if (!saved) return;
 
         // 3. Se è un'installazione SIDEWAY, scarica il PDF in automatico
         console.log("Controllo lavorazione per PDF:", newRecord.lavorazione_eseguita);
@@ -257,6 +274,89 @@ export default function NewRecord() {
                 <header className="header" style={{ marginBottom: '24px' }}>
                     <h1 style={{ fontSize: '1.4rem' }}>Revisione Dati IA</h1>
                 </header>
+
+                {/* ─── Modale Avviso Duplicato ─── */}
+                {duplicateWarning && (
+                    <div style={{
+                        position: 'fixed', inset: 0, zIndex: 3000,
+                        background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+                        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                        padding: '0 0 env(safe-area-inset-bottom)'
+                    }}>
+                        <div style={{
+                            background: 'linear-gradient(160deg, #1e293b, #0f172a)',
+                            borderRadius: '24px 24px 0 0', padding: '28px 20px 40px', width: '100%', maxWidth: '480px',
+                            border: '1px solid rgba(245,158,11,0.25)'
+                        }}>
+                            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                                <span style={{ fontSize: '2rem' }}>⚠️</span>
+                                <div>
+                                    <h2 style={{ margin: 0, fontSize: '1.15rem', color: '#f59e0b' }}>Intervento Potenzialmente Duplicato</h2>
+                                    <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                                        Nelle ultime 48 ore sono già stati registrati {duplicateWarning.matches.length} intervento/i con gli stessi dati:
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                                {duplicateWarning.matches.map((m, i) => (
+                                    <div key={m.id} style={{
+                                        background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
+                                        borderRadius: '14px', padding: '12px 14px'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                            <span style={{ fontWeight: '700', fontSize: '0.95rem' }}>
+                                                {m.targa || m.seriale_centralina || `#${m.id}`}
+                                            </span>
+                                            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                                                {new Date(m.timestamp).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                            {m.cliente && <span>🏢 {m.cliente}</span>}
+                                            {m.numero_veicolo && <span>🚛 #{m.numero_veicolo}</span>}
+                                            {m.seriale_centralina && <span style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>📡 {m.seriale_centralina}</span>}
+                                            {m.tipo_lavorazione && <span>🔧 {m.tipo_lavorazione}</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button
+                                    onClick={() => { setDuplicateWarning(null); setPendingRecord(null); setIsSaving(false); }}
+                                    style={{ flex: 1, padding: '14px', borderRadius: '14px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
+                                >
+                                    ← Annulla
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        setDuplicateWarning(null);
+                                        setIsSaving(true);
+                                        try {
+                                            await fetch('/api/save-record', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ ...pendingRecord, force: true }),
+                                            });
+                                        } catch (e) { console.warn('Force save failed', e); }
+
+                                        if (pendingRecord?.lavorazione_eseguita?.toLowerCase().includes('sideway')) {
+                                            try {
+                                                const { generateSidewayCertification } = await import('@/lib/pdf-sideway');
+                                                await generateSidewayCertification(pendingRecord);
+                                            } catch {}
+                                        }
+                                        router.push('/');
+                                    }}
+                                    style={{ flex: 2, padding: '14px', borderRadius: '14px', background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', color: '#f59e0b', fontWeight: '700', cursor: 'pointer', fontSize: '0.95rem' }}
+                                >
+                                    Salva Comunque →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <section className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>

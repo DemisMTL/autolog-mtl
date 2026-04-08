@@ -20,6 +20,7 @@ const recordSchema = z.object({
   fornitore_servizio: z.string().optional().nullable(),
   tecnico: z.string().optional().nullable(),
   tipo_lavorazione: z.string().optional().nullable(),
+  force: z.boolean().optional().default(false), // true = salta controllo duplicati
 });
 
 export async function POST(req: NextRequest) {
@@ -34,11 +35,57 @@ export async function POST(req: NextRequest) {
     const {
       targa, tipo_veicolo, numero_veicolo,
       lavorazione_eseguita, note, lat, lng, timestamp,
-      telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, tipo_lavorazione
+      telaio, seriale_centralina, marca_veicolo, cliente, anno_immatricolazione, marca_modello_tachigrafo, fornitore_servizio, tecnico, tipo_lavorazione,
+      force
     } = result_zod.data;
 
     await ensureTable();
     const sql = getDb();
+
+    // ─── Controllo Duplicati (ultime 48 ore) ──────────────────────────────────
+    if (!force) {
+      const conditions: string[] = [];
+      if (seriale_centralina && seriale_centralina.length >= 4) conditions.push('seriale');
+      if (targa && targa.length > 3) conditions.push('targa');
+      if (numero_veicolo && numero_veicolo.length > 1) conditions.push('numero_veicolo');
+
+      if (conditions.length > 0) {
+        const duplicates = await sql`
+          SELECT id, targa, seriale_centralina, cliente, numero_veicolo, timestamp, tipo_lavorazione
+          FROM records
+          WHERE timestamp > NOW() - INTERVAL '48 hours'
+          AND (
+            ${seriale_centralina && seriale_centralina.length >= 4
+              ? sql`(seriale_centralina IS NOT NULL AND UPPER(seriale_centralina) = UPPER(${seriale_centralina}))`
+              : sql`FALSE`}
+            OR ${targa && targa.length > 3
+              ? sql`(targa IS NOT NULL AND UPPER(targa) = UPPER(${targa}))`
+              : sql`FALSE`}
+            OR ${numero_veicolo && numero_veicolo.length > 1
+              ? sql`(numero_veicolo IS NOT NULL AND UPPER(numero_veicolo) = UPPER(${numero_veicolo}))`
+              : sql`FALSE`}
+          )
+          ORDER BY timestamp DESC
+          LIMIT 5
+        `;
+
+        if (duplicates.length > 0) {
+          console.log(`[DUPLICATE-CHECK] Found ${duplicates.length} potential duplicates`);
+          return NextResponse.json({
+            duplicate: true,
+            matches: duplicates.map(d => ({
+              id: d.id,
+              targa: d.targa,
+              seriale_centralina: d.seriale_centralina,
+              cliente: d.cliente,
+              numero_veicolo: d.numero_veicolo,
+              timestamp: d.timestamp,
+              tipo_lavorazione: d.tipo_lavorazione,
+            }))
+          });
+        }
+      }
+    }
 
     // ─── Client Unification Logic ───
     let unifiedCliente = cliente || null;
