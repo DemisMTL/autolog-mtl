@@ -22,23 +22,15 @@ export async function GET(req: NextRequest) {
         );
 
         if (res.ok) {
-            const { downloadUrl } = await res.json();
-            
-            // 2. Fetch the actual PDF content from the signed URL
-            const pdfRes = await fetch(downloadUrl);
-            if (!pdfRes.ok) {
-                console.error('[COLLAUDO-PROXY] Failed to fetch PDF content from signed URL');
-                return NextResponse.redirect(downloadUrl); // Fallback to redirect
-            }
+            // Now App-Ticket returns the binary PDF directly
+            const pdfBuffer = await res.arrayBuffer();
 
-            const pdfBuffer = await pdfRes.arrayBuffer();
-
-            // 3. Return the PDF directly to the browser
+            // Return the PDF directly to the browser
             return new NextResponse(pdfBuffer, {
                 headers: {
                     'Content-Type': 'application/pdf',
                     'Content-Disposition': 'inline; filename="certificato_collaudo.pdf"',
-                    'Cache-Control': 'public, max-age=3600'
+                    'Cache-Control': 'private, no-cache'
                 }
             });
         }
