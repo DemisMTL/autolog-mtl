@@ -633,24 +633,10 @@ export default function Home() {
                       {/* Pulsante Certificato Collaudo — visibile solo se collaudo_url è presente */}
                       {record.collaudo_url && (
                         <button
-                          onClick={async (e) => {
+                          onClick={(e) => {
                             e.stopPropagation();
-                            // If it's a Vercel Blob private URL, get a signed download link
-                            if (record.collaudo_url!.startsWith('https://')) {
-                              try {
-                                const ticketAppUrl = process.env.NEXT_PUBLIC_TICKET_APP_URL || 'https://app-ticket-sigma.vercel.app';
-                                const res = await fetch(`${ticketAppUrl}/api/collaudo/download?url=${encodeURIComponent(record.collaudo_url!)}`, {
-                                  headers: { 'x-api-key': process.env.NEXT_PUBLIC_SYNC_API_KEY || '' }
-                                });
-                                if (res.ok) {
-                                  const { downloadUrl } = await res.json();
-                                  window.open(downloadUrl, '_blank');
-                                  return;
-                                }
-                              } catch {}
-                            }
-                            // Fallback: open direct URL
-                            window.open(record.collaudo_url!, '_blank');
+                            // Use local server-side proxy to avoid CORS issues
+                            window.open(`/api/collaudo/download?url=${encodeURIComponent(record.collaudo_url!)}`, '_blank');
                           }}
                           style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center',

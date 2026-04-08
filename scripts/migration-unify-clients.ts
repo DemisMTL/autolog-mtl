@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 
 // Load ENV from both projects
-const mtlEnvPath = path.resolve('/Users/demisgrandis/Desktop/MTL-Ecosystem/App_MTL/app-mtl/.env.local');
+const mtlEnvPath = path.resolve('/Users/demisgrandis/Desktop/MTL-Ecosystem/Autolog-MTL/.env.local');
 const ticketEnvPath = path.resolve('/Users/demisgrandis/Desktop/MTL-Ecosystem/App-Ticket/.env');
 
 const mtlEnv = dotenv.parse(fs.readFileSync(mtlEnvPath));
@@ -48,7 +48,7 @@ async function run() {
     const masterNames = masterTickets.map(t => t.clientName);
     console.log(`✅ Loaded ${masterNames.length} master names from Tickets.\n`);
 
-    // 2. Fetch all records from App-MTL
+    // 2. Fetch all records from Autolog-MTL
     const allRecords = await sqlMTL`SELECT id, cliente FROM records WHERE cliente IS NOT NULL`;
     console.log(`📊 Found ${allRecords.length} records to verify.\n`);
 

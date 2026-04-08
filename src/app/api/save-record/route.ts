@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // 2. Se non trovato nei ticket, cerca nello storico locale dell'App-MTL
+        // 2. Se non trovato nei ticket, cerca nello storico locale dell'Autolog-MTL
         if (unifiedCliente === cliente) {
           const localMatch = await sql`
             SELECT cliente, COUNT(*) as freq 
