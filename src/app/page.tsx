@@ -646,7 +646,7 @@ export default function Home() {
                             boxShadow: '0 0 8px rgba(16,185,129,0.15)'
                           }}
                           title="Scarica Certificato di Collaudo WAY"
-                        >📄</button>
+                        ><img src="/Logo_way.png" alt="WAY" style={{ width: '28px', height: 'auto', filter: 'brightness(1.2)' }} /></button>
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); setEditingRecord(record); }}
