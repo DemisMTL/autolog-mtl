@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
 
         const res = await fetch(`${TICKET_APP_URL}/api/tickets?status=${encodeURIComponent(status)}`, {
             cache: 'no-store',
+            headers: { 'x-api-key': process.env.SYNC_API_KEY || '' },
         });
 
         if (!res.ok) {
